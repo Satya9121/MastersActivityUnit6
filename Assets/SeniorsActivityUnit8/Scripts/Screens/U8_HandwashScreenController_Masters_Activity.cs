@@ -8,19 +8,17 @@ namespace Googolplex.Unit8
 {
     public class U8_HandwashScreenController_Masters_Activity : MonoBehaviour
     {
-        [Header("UI Prompts & Feedback")]
+        [Header("UI Prompts & Controls")]
         [SerializeField] private TextMeshProUGUI promptText;
         [SerializeField] private TextMeshProUGUI timerText;
         [SerializeField] private Slider timerSlider;
         [SerializeField] private Button btnScrubArea;
 
-        [Header("Hands & Soap Visuals")]
+        [Header("Hands & Video Visuals")]
         [SerializeField] private RawImage handsVideoImage;
         [SerializeField] private U8_VideoPlayerUI_Masters_Activity videoPlayerUI;
         [SerializeField] private Image handsFallbackImage;
-        [SerializeField] private Sprite handsNormalSprite;
-        [SerializeField] private Sprite handsSoapySprite;
-        [SerializeField] private Sprite handsSparklingSprite;
+        [SerializeField] private Sprite handWashBorderSprite;
         [SerializeField] private Image waterStreamImage;
         [SerializeField] private GameObject bubbleContainer;
         [SerializeField] private List<Image> bubbleSprites = new List<Image>();
@@ -28,24 +26,45 @@ namespace Googolplex.Unit8
         [Header("4 Friendly Germ Blobs")]
         [SerializeField] private List<Image> germBlobs = new List<Image>();
 
-        [Header("Settings & Timer")]
-        [SerializeField] private float songDurationSeconds = 20.0f;
-        [SerializeField] private int scrubsPerGerm = 4;
+        [Header("Audio Clips (Inspector)")]
+        [SerializeField] private AudioClip voNowWashHands;
+        [SerializeField] private AudioClip voKeepGoing;
+        [SerializeField] private AudioClip voAllCleanOneStar;
+        [SerializeField] private AudioClip musHandwashSong;
+        [SerializeField] private AudioClip sfxGermOff;
+        [SerializeField] private AudioClip sfxScrub;
+        [SerializeField] private AudioClip sfxBubble;
+        [SerializeField] private AudioClip sfxSparkle;
 
-        private float currentTimer = 0f;
-        private int scrubCount = 0;
-        private int germsCleared = 0;
+        [Header("Settings")]
+        [SerializeField] private float defaultDurationSeconds = 10.0f;
+
+        private bool hasStartedWashing = false;
         private bool isHandwashingActive = false;
-        private float timeSinceLastScrub = 0f;
         private Coroutine handwashCoroutine;
 
         private void Awake()
         {
             AutoFindUIReferences();
+            AutoWireAudioClips();
             if (btnScrubArea != null)
             {
-                btnScrubArea.onClick.AddListener(OnScrubClicked);
+                btnScrubArea.onClick.RemoveAllListeners();
+                btnScrubArea.onClick.AddListener(OnWashHandsButtonClicked);
             }
+        }
+
+        public void AutoWireAudioClips()
+        {
+            if (U8_AudioManager_Masters_Activity.Instance == null) return;
+            if (voNowWashHands == null) voNowWashHands = U8_AudioManager_Masters_Activity.Instance.GetClip("VO_U8_06");
+            if (voKeepGoing == null) voKeepGoing = U8_AudioManager_Masters_Activity.Instance.GetClip("VO_U8_07");
+            if (voAllCleanOneStar == null) voAllCleanOneStar = U8_AudioManager_Masters_Activity.Instance.GetClip("VO_U8_08");
+            if (musHandwashSong == null) musHandwashSong = U8_AudioManager_Masters_Activity.Instance.GetClip("MUS_HandwashSong");
+            if (sfxGermOff == null) sfxGermOff = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_GermOff");
+            if (sfxScrub == null) sfxScrub = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_Scrub");
+            if (sfxBubble == null) sfxBubble = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_Bubble");
+            if (sfxSparkle == null) sfxSparkle = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_Sparkle");
         }
 
         private void OnEnable()
@@ -53,13 +72,18 @@ namespace Googolplex.Unit8
             CanvasGroup cg = GetComponent<CanvasGroup>();
             if (cg == null) cg = gameObject.AddComponent<CanvasGroup>();
             cg.alpha = 1f;
-            StartHandwashingSession();
+
+            PrepareReadyState();
         }
 
         private void OnDisable()
         {
             if (handwashCoroutine != null) StopCoroutine(handwashCoroutine);
-            if (videoPlayerUI != null) videoPlayerUI.Pause();
+            if (videoPlayerUI != null)
+            {
+                videoPlayerUI.onVideoEnd = null;
+                videoPlayerUI.Pause();
+            }
             if (U8_AudioManager_Masters_Activity.Instance != null)
             {
                 U8_AudioManager_Masters_Activity.Instance.StopBGM();
@@ -90,6 +114,12 @@ namespace Googolplex.Unit8
                 Transform t = transform.Find("HandsImage") ?? transform.Find("HandsFallback");
                 if (t != null) handsFallbackImage = t.GetComponent<Image>();
                 if (handsFallbackImage == null) handsFallbackImage = GetComponentInChildren<Image>(true);
+            }
+            if (handWashBorderSprite == null)
+            {
+                #if UNITY_EDITOR
+                handWashBorderSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/SeniorsActivityUnit8/Art/hand wash border.png");
+                #endif
             }
             if (handsVideoImage == null)
             {
@@ -134,18 +164,49 @@ namespace Googolplex.Unit8
             }
         }
 
-        public void StartHandwashingSession()
+        public void PrepareReadyState()
         {
-            isHandwashingActive = true;
-            currentTimer = songDurationSeconds;
-            scrubCount = 0;
-            germsCleared = 0;
-            timeSinceLastScrub = 0f;
+            if (handwashCoroutine != null) StopCoroutine(handwashCoroutine);
 
-            // Reset Hands Image & enable video child
-            if (handsFallbackImage != null && handsSoapySprite != null)
+            hasStartedWashing = false;
+            isHandwashingActive = false;
+
+            // 1. Hide the timer elements
+            if (timerText != null) timerText.gameObject.SetActive(false);
+            if (timerSlider != null) timerSlider.gameObject.SetActive(false);
+            Transform badgeT = transform.Find("TimerBadge");
+            if (badgeT != null) badgeT.gameObject.SetActive(false);
+            Transform timerTxtT = transform.Find("TimerText");
+            if (timerTxtT != null) timerTxtT.gameObject.SetActive(false);
+
+            // 2. Enable and show the WASH HANDS button
+            if (btnScrubArea != null)
             {
-                handsFallbackImage.sprite = handsSoapySprite;
+                btnScrubArea.gameObject.SetActive(true);
+                btnScrubArea.interactable = true;
+                var labelTmp = btnScrubArea.GetComponentInChildren<TextMeshProUGUI>(true);
+                if (labelTmp != null)
+                {
+                    labelTmp.text = "WASH HANDS";
+                }
+            }
+
+            // 3. Prepare Hands Image strictly with hand wash border.png (active before clicking)
+            if (handsFallbackImage != null)
+            {
+                if (handWashBorderSprite == null)
+                {
+                    #if UNITY_EDITOR
+                    handWashBorderSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/SeniorsActivityUnit8/Art/hand wash border.png");
+                    #endif
+                }
+
+                if (handWashBorderSprite != null)
+                {
+                    handsFallbackImage.sprite = handWashBorderSprite;
+                }
+                handsFallbackImage.color = Color.white;
+                handsFallbackImage.preserveAspect = true;
                 handsFallbackImage.gameObject.SetActive(true);
             }
 
@@ -154,10 +215,13 @@ namespace Googolplex.Unit8
                 handsVideoImage.gameObject.SetActive(true);
             }
 
+            // 4. Do NOT autoplay video - show preview and pause until button clicked
             if (videoPlayerUI != null)
             {
                 videoPlayerUI.gameObject.SetActive(true);
-                videoPlayerUI.Play();
+                videoPlayerUI.ResetToPreview();
+                videoPlayerUI.Pause();
+                videoPlayerUI.onVideoEnd = null;
             }
 
             if (bubbleContainer != null)
@@ -165,7 +229,7 @@ namespace Googolplex.Unit8
                 bubbleContainer.SetActive(true);
             }
 
-            // Reset all friendly germ blobs
+            // 5. Reset all friendly germ blobs
             foreach (var blob in germBlobs)
             {
                 if (blob != null)
@@ -175,82 +239,115 @@ namespace Googolplex.Unit8
                 }
             }
 
-            if (promptText != null) promptText.text = $"Tap or rub to scrub away all {germBlobs.Count} germs!";
-            if (timerSlider != null)
+            if (promptText != null) promptText.text = "Click 'WASH HANDS' to start washing!";
+        }
+
+        public void OnWashHandsButtonClicked()
+        {
+            if (hasStartedWashing) return;
+
+            hasStartedWashing = true;
+            isHandwashingActive = true;
+
+            // 1. Disable and hide the WASH HANDS button immediately
+            if (btnScrubArea != null)
             {
-                timerSlider.maxValue = songDurationSeconds;
-                timerSlider.value = songDurationSeconds;
+                btnScrubArea.interactable = false;
+                btnScrubArea.gameObject.SetActive(false);
             }
 
+            // 2. Activate HandsImage border and video when button is clicked
+            if (handsFallbackImage != null)
+            {
+                handsFallbackImage.gameObject.SetActive(true);
+            }
+            if (handsVideoImage != null)
+            {
+                handsVideoImage.gameObject.SetActive(true);
+            }
+            if (bubbleContainer != null)
+            {
+                bubbleContainer.SetActive(true);
+            }
+
+            // 3. Play the video (non-looping)
+            if (videoPlayerUI != null)
+            {
+                videoPlayerUI.gameObject.SetActive(true);
+                videoPlayerUI.onVideoEnd = () =>
+                {
+                    if (isHandwashingActive)
+                    {
+                        FinishHandwashing();
+                    }
+                };
+                videoPlayerUI.Play();
+            }
+
+            // 4. Play audio (song + VO)
             if (U8_AudioManager_Masters_Activity.Instance != null)
             {
-                U8_AudioManager_Masters_Activity.Instance.PlayVO("VO_U8_06"); // "Now wash your hands. Keep tapping!"
+                U8_AudioManager_Masters_Activity.Instance.PlayVO("VO_U8_06"); // "Now wash your hands!"
                 U8_AudioManager_Masters_Activity.Instance.PlayBGM("MUS_HandwashSong", false);
             }
 
+            if (promptText != null) promptText.text = "Washing hands with soap and water...";
+
+            // 5. Start session coroutine
             if (handwashCoroutine != null) StopCoroutine(handwashCoroutine);
-            handwashCoroutine = StartCoroutine(HandwashTimerRoutine());
+            handwashCoroutine = StartCoroutine(HandwashVideoSessionRoutine());
         }
 
-        public void OnScrubClicked()
+        private IEnumerator HandwashVideoSessionRoutine()
         {
-            if (!isHandwashingActive) return;
-
-            scrubCount++;
-            timeSinceLastScrub = 0f;
-
-            if (U8_AudioManager_Masters_Activity.Instance != null)
+            double duration = defaultDurationSeconds;
+            if (videoPlayerUI != null && videoPlayerUI.Duration > 1.0)
             {
-                U8_AudioManager_Masters_Activity.Instance.PlaySFX("SFX_Scrub");
-                if (scrubCount % 2 == 0) U8_AudioManager_Masters_Activity.Instance.PlaySFX("SFX_Bubble");
+                duration = videoPlayerUI.Duration;
             }
 
-            // Animate germ wiggle on tap
-            WiggleActiveGerms();
+            float elapsed = 0f;
+            int totalGerms = germBlobs.Count;
+            int clearedSoFar = 0;
 
-            // Animate bubble growth
-            if (bubbleSprites != null)
+            while (elapsed < (float)duration)
             {
-                foreach (var bubble in bubbleSprites)
+                elapsed += Time.deltaTime;
+
+                // Gradually clear germs as video plays
+                if (totalGerms > 0)
                 {
-                    if (bubble != null)
+                    int targetClear = Mathf.Clamp(Mathf.FloorToInt((elapsed / (float)duration) * totalGerms), 0, totalGerms);
+                    while (clearedSoFar < targetClear && clearedSoFar < totalGerms)
                     {
-                        bubble.transform.localScale = Vector3.one * Mathf.Clamp(0.5f + (scrubCount * 0.04f), 0.5f, 1.4f);
+                        if (germBlobs[clearedSoFar] != null && germBlobs[clearedSoFar].gameObject.activeSelf)
+                        {
+                            StartCoroutine(SlideOffGermRoutine(germBlobs[clearedSoFar]));
+                        }
+                        clearedSoFar++;
                     }
                 }
-            }
 
-            // Paced Germ Clearance across the 20-second duration:
-            // Ensures germs clear gradually as student taps, lasting through the full song
-            float timeElapsed = songDurationSeconds - currentTimer;
-            float secondsPerGerm = (germBlobs.Count > 0) ? (songDurationSeconds / germBlobs.Count) : 2.5f;
-            int maxPacedGerms = Mathf.Clamp(Mathf.FloorToInt(timeElapsed / secondsPerGerm) + 1, 1, germBlobs.Count);
-            int tapPacedGerms = Mathf.Clamp(scrubCount / Mathf.Max(1, scrubsPerGerm), 0, germBlobs.Count);
-
-            int targetGermsToClear = Mathf.Min(maxPacedGerms, tapPacedGerms);
-            if (targetGermsToClear > germsCleared)
-            {
-                int indexToClear = germsCleared;
-                germsCleared = targetGermsToClear;
-                if (indexToClear < germBlobs.Count && germBlobs[indexToClear] != null)
+                // Periodic bubble effect
+                if (Mathf.FloorToInt(elapsed) % 3 == 0)
                 {
-                    StartCoroutine(SlideOffGermRoutine(germBlobs[indexToClear]));
+                    WiggleActiveGerms();
                 }
 
-                if (promptText != null)
-                {
-                    promptText.text = $"Great scrubbing! {germsCleared}/{germBlobs.Count} germs washed away!";
-                }
+                yield return null;
             }
+
+            // Once video ends, finish activity and transition to next step in gameplay flow
+            FinishHandwashing();
         }
 
         private void WiggleActiveGerms()
         {
-            for (int i = germsCleared; i < germBlobs.Count; i++)
+            foreach (var g in germBlobs)
             {
-                if (germBlobs[i] != null && germBlobs[i].gameObject.activeSelf)
+                if (g != null && g.gameObject.activeSelf)
                 {
-                    StartCoroutine(QuickWiggleRoutine(germBlobs[i].transform));
+                    StartCoroutine(QuickWiggleRoutine(g.transform));
                 }
             }
         }
@@ -284,38 +381,12 @@ namespace Googolplex.Unit8
             germImage.transform.localPosition = startPos;
         }
 
-        private IEnumerator HandwashTimerRoutine()
-        {
-            while (currentTimer > 0f)
-            {
-                currentTimer -= Time.deltaTime;
-                timeSinceLastScrub += Time.deltaTime;
-
-                if (timerSlider != null) timerSlider.value = currentTimer;
-                if (timerText != null) timerText.text = $"{Mathf.CeilToInt(currentTimer)}s";
-
-                // Encouragement if student pauses tapping
-                if (timeSinceLastScrub > 3.0f && isHandwashingActive)
-                {
-                    if (promptText != null) promptText.text = "Keep going! Scrub the germs away!";
-                    if (U8_AudioManager_Masters_Activity.Instance != null)
-                    {
-                        U8_AudioManager_Masters_Activity.Instance.PlayVO("VO_U8_07"); // "Keep going!"
-                    }
-                    timeSinceLastScrub = 0f; // Reset warning cooldown
-                }
-
-                yield return null;
-            }
-
-            FinishHandwashing();
-        }
-
         private void FinishHandwashing()
         {
+            if (!isHandwashingActive) return;
             isHandwashingActive = false;
 
-            // 1. Immediately disable child video GameObject
+            // 1. Stop and disable video
             if (videoPlayerUI != null)
             {
                 videoPlayerUI.Stop();
@@ -336,13 +407,15 @@ namespace Googolplex.Unit8
                 bubbleContainer.SetActive(false);
             }
 
-            // 3. Reveal clean sparkling hands on parent HandsImage
+            // 3. Hands Image stays with handWashBorderSprite
             if (handsFallbackImage != null)
             {
-                if (handsSparklingSprite != null)
+                if (handWashBorderSprite != null)
                 {
-                    handsFallbackImage.sprite = handsSparklingSprite;
+                    handsFallbackImage.sprite = handWashBorderSprite;
                 }
+                handsFallbackImage.color = Color.white;
+                handsFallbackImage.preserveAspect = true;
                 handsFallbackImage.gameObject.SetActive(true);
             }
 

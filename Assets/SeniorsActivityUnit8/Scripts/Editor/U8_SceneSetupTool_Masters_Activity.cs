@@ -171,7 +171,7 @@ namespace Googolplex.Unit8
             Scene currentScene = SceneManager.GetActiveScene();
             EditorSceneManager.MarkSceneDirty(currentScene);
 
-            EditorUtility.DisplayDialog("Screen 3 Updated", "Screen 3 (Handwashing Video & 20s Song) has been updated and Video Player is wired!", "OK");
+            EditorUtility.DisplayDialog("Screen 3 Updated", "Screen 3 (Handwashing Video & 10s Song) has been updated and Video Player is wired!", "OK");
             Debug.Log("[U8_SceneSetupTool] Setup Screen 3 only completed.");
         }
 
@@ -438,6 +438,38 @@ namespace Googolplex.Unit8
             Debug.Log("[U8_SceneSetupTool] Non-destructive sprite and audio wiring completed.");
         }
 
+        [MenuItem("Googolplex/Unit 8/Build Fresh Android Development APK", false, 16)]
+        public static void BuildAndroidDevApk()
+        {
+            Debug.Log("[U8 Build] Starting Fresh Android Development APK Build for Unit 8...");
+
+            EditorBuildSettingsScene[] scenes = new EditorBuildSettingsScene[]
+            {
+                new EditorBuildSettingsScene(ScenePath, true)
+            };
+            EditorBuildSettings.scenes = scenes;
+
+            BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions();
+            buildPlayerOptions.scenes = new[] { ScenePath };
+            buildPlayerOptions.locationPathName = "MastersActivity-Unit-8.apk";
+            buildPlayerOptions.target = BuildTarget.Android;
+            buildPlayerOptions.options = BuildOptions.Development | BuildOptions.AllowDebugging;
+
+            UnityEditor.Build.Reporting.BuildReport report = BuildPipeline.BuildPlayer(buildPlayerOptions);
+            UnityEditor.Build.Reporting.BuildSummary summary = report.summary;
+
+            if (summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded)
+            {
+                Debug.Log($"[U8 Build] Android Development APK build SUCCEEDED: {summary.totalSize / (1024 * 1024)} MB | Output: {Path.GetFullPath("MastersActivity-Unit-8.apk")}");
+                EditorUtility.DisplayDialog("Build Succeeded", $"Unit 8 Android Development APK built successfully!\nSize: {summary.totalSize / (1024 * 1024)} MB\nPath: {Path.GetFullPath("MastersActivity-Unit-8.apk")}", "OK");
+            }
+            else if (summary.result == UnityEditor.Build.Reporting.BuildResult.Failed)
+            {
+                Debug.LogError($"[U8 Build] Android build FAILED with {summary.totalErrors} errors!");
+                EditorUtility.DisplayDialog("Build Failed", $"Unit 8 Android build failed with {summary.totalErrors} errors. Check console for details.", "OK");
+            }
+        }
+
         [MenuItem("Googolplex/Unit 8/Sanitize All UI Text Glyphs", false, 13)]
         public static void SanitizeAllUITextGlyphsMenu()
         {
@@ -494,8 +526,8 @@ namespace Googolplex.Unit8
             Sprite existing = AssetDatabase.LoadAssetAtPath<Sprite>(path);
             if (existing != null) return existing;
 
-            int size = 128;
-            int radius = 32;
+            int size = 256;
+            int radius = 48;
             Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
             Color[] colors = new Color[size * size];
 
@@ -838,7 +870,7 @@ namespace Googolplex.Unit8
             GameObject sink = CreateContainer(screen, "Sink", new Vector2(0, -20), new Vector2(440, 580));
             CreateImage(sink, "SinkImage", new Vector2(0, 70), new Vector2(340, 380), GetSprite("SPR_Sink_Splashed"));
             CreateImage(sink, "TapWaterStream", new Vector2(10, -5), new Vector2(90, 200), GetSprite("SPR_WaterStream"));
-            CreateButton(sink, "Btn_WashHands", "4. Wash Hands (20s)", new Vector2(0, -150), new Vector2(320, 64), new Color(0.18f, 0.68f, 0.82f), 25);
+            CreateButton(sink, "Btn_WashHands", "4. Wash Hands (10s)", new Vector2(0, -150), new Vector2(320, 64), new Color(0.18f, 0.68f, 0.82f), 25);
             CreateButton(sink, "Btn_TurnTapOff", "5. Turn Tap Off", new Vector2(0, -215), new Vector2(320, 64), new Color(0.85f, 0.52f, 0.20f), 25);
             CreateButton(sink, "Btn_WipeSink", "7. Wipe Sink Dry", new Vector2(0, -280), new Vector2(320, 64), new Color(0.20f, 0.78f, 0.42f), 25);
 
@@ -870,7 +902,7 @@ namespace Googolplex.Unit8
             CreateImage(screen, "Background", Vector2.zero, Vector2.zero, GetSprite("SPR_Washroom_BG"), true);
 
             // Pinned Top Header Bar
-            CreateHeader(screen, "UNIT 8: HANDWASHING", "20-Second Song & Scrub");
+            CreateHeader(screen, "UNIT 8: HANDWASHING", "10-Second Song & Scrub");
 
             // Hands Video with U8_VideoPlayerUI
             RawImage handsVideo = CreateRawImage(screen, "HandsVideo", new Vector2(0, 0), new Vector2(580, 480));
@@ -900,7 +932,7 @@ namespace Googolplex.Unit8
             CreatePromptCard(screen, "Prompt", "Keep tapping or rubbing to scrub hands with soap!", new Vector2(0, 380), new Vector2(1300, 90), 36);
 
             GameObject timerCard = CreateCard(screen, "TimerBadge", new Vector2(0, 275), new Vector2(240, 85), new Color(0.08f, 0.22f, 0.38f, 0.95f));
-            CreateText(timerCard, "TimerText", "20s", Vector2.zero, new Vector2(220, 75), 50, Color.cyan);
+            CreateText(timerCard, "TimerText", "10s", Vector2.zero, new Vector2(220, 75), 50, Color.cyan);
         }
 
         private static void SetupPart3UI(GameObject screen)

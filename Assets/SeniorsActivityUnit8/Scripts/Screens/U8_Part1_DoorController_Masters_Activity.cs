@@ -32,6 +32,16 @@ namespace Googolplex.Unit8
         [SerializeField] private Sprite[] meeraWalkSprites = new Sprite[8];
         [SerializeField] private Sprite meeraEnteringSprite;
 
+        [Header("Audio Clips (Inspector)")]
+        [SerializeField] private AudioClip voAnuNeedsWashroom;
+        [SerializeField] private AudioClip voDoorClosed;
+        [SerializeField] private AudioClip voKnockAndWait;
+        [SerializeField] private AudioClip voJustAMinute;
+        [SerializeField] private AudioClip voSorry;
+        [SerializeField] private AudioClip sfxKnock;
+        [SerializeField] private AudioClip sfxBangDoor;
+        [SerializeField] private AudioClip sfxBoltRattle;
+        [SerializeField] private AudioClip sfxBoltClick;
         [Header("Controllers")]
         [SerializeField] private U8_AnuWalkingController_Masters_Activity anuWalkingController;
 
@@ -40,6 +50,7 @@ namespace Googolplex.Unit8
         private void Awake()
         {
             AutoWireComponents();
+            AutoWireAudioClips();
             EnsureMeeraSpritesLoaded();
 
             if (btnKnockAndWait != null) btnKnockAndWait.onClick.AddListener(OnKnockAndWaitClicked);
@@ -134,6 +145,20 @@ namespace Googolplex.Unit8
                 anuSheepishSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/SeniorsActivityUnit8/Art/SPR_Anu_Sheepish_Side.png");
             }
 #endif
+        }
+
+        public void AutoWireAudioClips()
+        {
+            if (U8_AudioManager_Masters_Activity.Instance == null) return;
+            if (voAnuNeedsWashroom == null) voAnuNeedsWashroom = U8_AudioManager_Masters_Activity.Instance.GetClip("VO_U8_01");
+            if (voDoorClosed == null) voDoorClosed = U8_AudioManager_Masters_Activity.Instance.GetClip("VO_U8_02");
+            if (voKnockAndWait == null) voKnockAndWait = U8_AudioManager_Masters_Activity.Instance.GetClip("VO_U8_03");
+            if (voJustAMinute == null) voJustAMinute = U8_AudioManager_Masters_Activity.Instance.GetClip("VO_U8_VOICE_1");
+            if (voSorry == null) voSorry = U8_AudioManager_Masters_Activity.Instance.GetClip("VO_U8_ANU_1");
+            if (sfxKnock == null) sfxKnock = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_Knock");
+            if (sfxBangDoor == null) sfxBangDoor = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_BangDoor");
+            if (sfxBoltRattle == null) sfxBoltRattle = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_BoltRattle");
+            if (sfxBoltClick == null) sfxBoltClick = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_BoltClick");
         }
 
         public void EnsureMeeraSpritesLoaded()
@@ -296,6 +321,10 @@ namespace Googolplex.Unit8
         private void OnKnockAndWaitClicked()
         {
             if (isProcessingChoice) return;
+            if (U8_AudioManager_Masters_Activity.Instance != null)
+            {
+                U8_AudioManager_Masters_Activity.Instance.PlayButtonClick();
+            }
             StartCoroutine(KnockAndWaitRoutine());
         }
 
@@ -470,6 +499,10 @@ namespace Googolplex.Unit8
         private void OnBangLoudlyClicked()
         {
             if (isProcessingChoice) return;
+            if (U8_AudioManager_Masters_Activity.Instance != null)
+            {
+                U8_AudioManager_Masters_Activity.Instance.PlayButtonClick();
+            }
             StartCoroutine(BangLoudlyRoutine());
         }
 
@@ -558,6 +591,10 @@ namespace Googolplex.Unit8
         private void OnPushOpenClicked()
         {
             if (isProcessingChoice) return;
+            if (U8_AudioManager_Masters_Activity.Instance != null)
+            {
+                U8_AudioManager_Masters_Activity.Instance.PlayButtonClick();
+            }
             StartCoroutine(PushOpenRoutine());
         }
 

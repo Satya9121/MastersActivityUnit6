@@ -45,6 +45,9 @@ namespace Googolplex.Unit8
         [SerializeField] private CanvasGroup transitionOverlayCanvasGroup;
         [SerializeField] private float fadeDuration = 0.18f;
         [SerializeField] private float darkHoldDuration = 0.04f;
+        [Header("Audio Clips (Inspector)")]
+        [SerializeField] private AudioClip ambWashroom;
+        [SerializeField] private AudioClip sfxStar;
 
         private bool isTransitioning = false;
         private Coroutine activeTransitionCoroutine;
@@ -67,7 +70,15 @@ namespace Googolplex.Unit8
             Instance = this;
 
             AutoFindScreens();
+            AutoWireAudioClips();
             EnsureTransitionOverlay();
+        }
+
+        public void AutoWireAudioClips()
+        {
+            if (U8_AudioManager_Masters_Activity.Instance == null) return;
+            if (ambWashroom == null) ambWashroom = U8_AudioManager_Masters_Activity.Instance.GetClip("AMB_Washroom");
+            if (sfxStar == null) sfxStar = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_Star");
         }
 
         private void Start()

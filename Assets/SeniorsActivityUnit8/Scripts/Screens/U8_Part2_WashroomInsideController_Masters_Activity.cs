@@ -2,6 +2,7 @@ using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Video;
 
 namespace Googolplex.Unit8
 {
@@ -43,18 +44,63 @@ namespace Googolplex.Unit8
         [SerializeField] private Sprite anuWipingSprite;
         [SerializeField] private Sprite[] anuWalkSprites = new Sprite[8];
 
+        [Header("Step 7 Wiping Sink Video")]
+        [SerializeField] private VideoClip wipingSinkVideoClip;
+        [SerializeField] private GameObject wipeVideoOverlay;
+        [SerializeField] private RawImage wipeVideoRawImage;
+        [SerializeField] private VideoPlayer wipeVideoPlayer;
+        [SerializeField] private AspectRatioFitter wipeVideoAspectFitter;
+
+        [Header("Audio Clips (Inspector)")]
+        [SerializeField] private AudioClip voNowWhatNext;
+        [SerializeField] private AudioClip voDoNotForgetToFlush;
+        [SerializeField] private AudioClip voNowWashHands;
+        [SerializeField] private AudioClip voTurnTapOff;
+        [SerializeField] private AudioClip voTowelInBin;
+        [SerializeField] private AudioClip voWipeSink;
+        [SerializeField] private AudioClip sfxBoltClick;
+        [SerializeField] private AudioClip sfxFlush;
+        [SerializeField] private AudioClip sfxTapOn;
+        [SerializeField] private AudioClip sfxTapOff;
+        [SerializeField] private AudioClip sfxTowelPull;
+        [SerializeField] private AudioClip sfxBinDrop;
+        [SerializeField] private AudioClip sfxWipe;
+        [SerializeField] private AudioClip sfxSparkle;
+
         private int currentStepIndex = 1;
         private Vector2 anuEditorPosition = new Vector2(-240f, -80f);
         private Vector2 anuCubiclePosition = new Vector2(-710f, -80f);
         private Vector2 towelInAirEditorPos;
+        private RenderTexture wipeRenderTexture;
+        private bool isWipeVideoInProgress = false;
         private bool positionsCached = false;
 
         private void Awake()
         {
             EnsureAnuSpritesLoaded();
             AutoFindUIReferences();
+            AutoWireAudioClips();
             CacheEditorPositions();
             RegisterListeners();
+        }
+
+        public void AutoWireAudioClips()
+        {
+            if (U8_AudioManager_Masters_Activity.Instance == null) return;
+            if (voNowWhatNext == null) voNowWhatNext = U8_AudioManager_Masters_Activity.Instance.GetClip("VO_U8_04");
+            if (voDoNotForgetToFlush == null) voDoNotForgetToFlush = U8_AudioManager_Masters_Activity.Instance.GetClip("VO_U8_05");
+            if (voNowWashHands == null) voNowWashHands = U8_AudioManager_Masters_Activity.Instance.GetClip("VO_U8_06");
+            if (voTurnTapOff == null) voTurnTapOff = U8_AudioManager_Masters_Activity.Instance.GetClip("VO_U8_09");
+            if (voTowelInBin == null) voTowelInBin = U8_AudioManager_Masters_Activity.Instance.GetClip("VO_U8_10");
+            if (voWipeSink == null) voWipeSink = U8_AudioManager_Masters_Activity.Instance.GetClip("VO_U8_11");
+            if (sfxBoltClick == null) sfxBoltClick = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_BoltClick");
+            if (sfxFlush == null) sfxFlush = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_Flush");
+            if (sfxTapOn == null) sfxTapOn = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_TapOn");
+            if (sfxTapOff == null) sfxTapOff = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_TapOff");
+            if (sfxTowelPull == null) sfxTowelPull = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_TowelPull");
+            if (sfxBinDrop == null) sfxBinDrop = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_BinDrop");
+            if (sfxWipe == null) sfxWipe = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_Wipe");
+            if (sfxSparkle == null) sfxSparkle = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_Sparkle");
         }
 
         public void EnsureAnuSpritesLoaded()
@@ -219,6 +265,8 @@ namespace Googolplex.Unit8
                 anuInsideAvatar.preserveAspect = true;
                 if (anuNormalSprite != null && anuInsideAvatar.sprite == null) anuInsideAvatar.sprite = anuNormalSprite;
             }
+
+            EnsureWipeVideoOverlay();
         }
 
         private Button FindStepButton(int stepNumber, params string[] keywords)
@@ -863,122 +911,365 @@ namespace Googolplex.Unit8
             }
         }
 
-        public void OnWipeSinkClicked()
+        public void EnsureWipeVideoOverlay()
         {
-            StartCoroutine(WipeSinkRoutine());
+            if (wipingSinkVideoClip == null)
+            {
+#if UNITY_EDITOR
+                wipingSinkVideoClip = UnityEditor.AssetDatabase.LoadAssetAtPath<VideoClip>("Assets/SeniorsActivityUnit8/Art/Wiping sink video.mp4");
+                if (wipingSinkVideoClip == null)
+                {
+                    wipingSinkVideoClip = UnityEditor.AssetDatabase.LoadAssetAtPath<VideoClip>("Assets/SeniorsActivityUnit6/Art/Wiping sink video.mp4");
+                }
+#endif
+            }
+
+            if (wipeVideoOverlay == null)
+            {
+                Transform existing = transform.Find("WipeVideoOverlay");
+                if (existing != null)
+                {
+                    wipeVideoOverlay = existing.gameObject;
+                    wipeVideoRawImage = existing.GetComponentInChildren<RawImage>(true);
+                    wipeVideoPlayer = existing.GetComponentInChildren<VideoPlayer>(true);
+                    wipeVideoAspectFitter = existing.GetComponentInChildren<AspectRatioFitter>(true);
+                }
+            }
+
+            if (wipeVideoOverlay == null)
+            {
+                GameObject overlayGo = new GameObject("WipeVideoOverlay", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(CanvasGroup));
+                overlayGo.transform.SetParent(transform, false);
+                overlayGo.transform.SetAsLastSibling();
+
+                RectTransform rt = overlayGo.GetComponent<RectTransform>();
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.sizeDelta = Vector2.zero;
+                rt.anchoredPosition = Vector2.zero;
+                rt.localScale = Vector3.one;
+
+                Image bgImg = overlayGo.GetComponent<Image>();
+                bgImg.color = new Color(0.04f, 0.06f, 0.1f, 1f);
+                bgImg.raycastTarget = true;
+
+                CanvasGroup cg = overlayGo.GetComponent<CanvasGroup>();
+                cg.alpha = 1f;
+                cg.blocksRaycasts = true;
+                cg.interactable = false;
+
+                GameObject videoContainer = new GameObject("WipeVideoContainer", typeof(RectTransform));
+                videoContainer.transform.SetParent(overlayGo.transform, false);
+                RectTransform containerRt = videoContainer.GetComponent<RectTransform>();
+                containerRt.anchorMin = Vector2.zero;
+                containerRt.anchorMax = Vector2.one;
+                containerRt.sizeDelta = Vector2.zero;
+                containerRt.anchoredPosition = Vector2.zero;
+                containerRt.localScale = Vector3.one;
+
+                GameObject rawImgGo = new GameObject("WipeVideoDisplay", typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage), typeof(AspectRatioFitter), typeof(VideoPlayer));
+                rawImgGo.transform.SetParent(videoContainer.transform, false);
+
+                RectTransform rawRt = rawImgGo.GetComponent<RectTransform>();
+                rawRt.anchorMin = new Vector2(0.5f, 0.5f);
+                rawRt.anchorMax = new Vector2(0.5f, 0.5f);
+                rawRt.pivot = new Vector2(0.5f, 0.5f);
+                rawRt.sizeDelta = new Vector2(1080f, 720f);
+                rawRt.anchoredPosition = Vector2.zero;
+                rawRt.localScale = Vector3.one;
+
+                wipeVideoAspectFitter = rawImgGo.GetComponent<AspectRatioFitter>();
+                wipeVideoAspectFitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+                wipeVideoAspectFitter.aspectRatio = 16f / 9f;
+
+                wipeVideoRawImage = rawImgGo.GetComponent<RawImage>();
+                wipeVideoRawImage.color = Color.white;
+                wipeVideoRawImage.raycastTarget = false;
+
+                wipeVideoPlayer = rawImgGo.GetComponent<VideoPlayer>();
+                wipeVideoPlayer.playOnAwake = false;
+                wipeVideoPlayer.renderMode = VideoRenderMode.RenderTexture;
+                wipeVideoPlayer.audioOutputMode = VideoAudioOutputMode.None;
+                wipeVideoPlayer.isLooping = false;
+
+                wipeVideoOverlay = overlayGo;
+            }
+
+            if (wipeVideoPlayer == null && wipeVideoOverlay != null)
+            {
+                wipeVideoPlayer = wipeVideoOverlay.GetComponentInChildren<VideoPlayer>(true);
+                if (wipeVideoPlayer == null && wipeVideoRawImage != null)
+                {
+                    wipeVideoPlayer = wipeVideoRawImage.gameObject.AddComponent<VideoPlayer>();
+                }
+            }
+
+            if (wipeVideoAspectFitter == null && wipeVideoRawImage != null)
+            {
+                wipeVideoAspectFitter = wipeVideoRawImage.GetComponent<AspectRatioFitter>();
+                if (wipeVideoAspectFitter == null)
+                {
+                    wipeVideoAspectFitter = wipeVideoRawImage.gameObject.AddComponent<AspectRatioFitter>();
+                }
+            }
+
+            if (wipeVideoAspectFitter != null)
+            {
+                wipeVideoAspectFitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+                if (wipingSinkVideoClip != null && wipingSinkVideoClip.width > 0 && wipingSinkVideoClip.height > 0)
+                {
+                    wipeVideoAspectFitter.aspectRatio = (float)wipingSinkVideoClip.width / (float)wipingSinkVideoClip.height;
+                }
+                else
+                {
+                    wipeVideoAspectFitter.aspectRatio = 16f / 9f;
+                }
+            }
+
+            if (wipeVideoOverlay != null)
+            {
+                wipeVideoOverlay.SetActive(false);
+            }
         }
 
-        private IEnumerator WipeSinkRoutine()
+        private void StartWipingSinkVideo()
         {
-            if (anuInsideAvatar == null) yield break;
-
-            EnsureAnuSpritesLoaded();
-
-            Vector2 originalPos = anuInsideAvatar.rectTransform.anchoredPosition;
-            // Step forward towards the real washroom sink (SinkImage) so Anu's hands with blue cloth wipe the real sink rim & bowl
-            Vector2 wipePos = new Vector2(-155f, originalPos.y);
-
-            // Smoothly step forward towards the real sink
-            float walkTime = 0.35f;
-            float elapsed = 0f;
-            while (elapsed < walkTime)
+            if (wipeVideoPlayer == null || wipeVideoRawImage == null)
             {
-                elapsed += Time.deltaTime;
-                anuInsideAvatar.rectTransform.anchoredPosition = Vector2.Lerp(originalPos, wipePos, elapsed / walkTime);
+                EnsureWipeVideoOverlay();
+            }
+
+            if (wipingSinkVideoClip == null)
+            {
+#if UNITY_EDITOR
+                wipingSinkVideoClip = UnityEditor.AssetDatabase.LoadAssetAtPath<VideoClip>("Assets/SeniorsActivityUnit8/Art/Wiping sink video.mp4");
+                if (wipingSinkVideoClip == null)
+                {
+                    wipingSinkVideoClip = UnityEditor.AssetDatabase.LoadAssetAtPath<VideoClip>("Assets/SeniorsActivityUnit6/Art/Wiping sink video.mp4");
+                }
+#endif
+            }
+
+            int width = wipingSinkVideoClip != null && wipingSinkVideoClip.width > 0 ? (int)wipingSinkVideoClip.width : 1280;
+            int height = wipingSinkVideoClip != null && wipingSinkVideoClip.height > 0 ? (int)wipingSinkVideoClip.height : 720;
+
+            if (wipeRenderTexture == null || wipeRenderTexture.width != width || wipeRenderTexture.height != height)
+            {
+                if (wipeRenderTexture != null)
+                {
+                    wipeRenderTexture.Release();
+                    Destroy(wipeRenderTexture);
+                }
+                wipeRenderTexture = new RenderTexture(width, height, 0, RenderTextureFormat.ARGB32);
+                wipeRenderTexture.Create();
+            }
+
+            if (wipeVideoAspectFitter != null)
+            {
+                wipeVideoAspectFitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+                wipeVideoAspectFitter.aspectRatio = (float)width / (float)height;
+            }
+
+            if (wipeVideoRawImage != null)
+            {
+                wipeVideoRawImage.texture = wipeRenderTexture;
+                wipeVideoRawImage.color = Color.white;
+            }
+
+            if (wipeVideoPlayer != null)
+            {
+                wipeVideoPlayer.renderMode = VideoRenderMode.RenderTexture;
+                wipeVideoPlayer.targetTexture = wipeRenderTexture;
+                wipeVideoPlayer.clip = wipingSinkVideoClip;
+                wipeVideoPlayer.isLooping = false;
+                wipeVideoPlayer.audioOutputMode = VideoAudioOutputMode.None;
+                wipeVideoPlayer.Play();
+            }
+        }
+
+        private void HideOldPart2ControlsForVideo()
+        {
+            if (anuInsideAvatar != null)
+            {
+                anuInsideAvatar.gameObject.SetActive(false);
+            }
+        }
+
+        private void RestorePart2ControlsAfterVideo()
+        {
+            if (anuInsideAvatar != null)
+            {
+                anuInsideAvatar.gameObject.SetActive(true);
+                if (anuNormalSprite != null)
+                {
+                    anuInsideAvatar.sprite = anuNormalSprite;
+                }
+                anuInsideAvatar.rectTransform.anchoredPosition = anuEditorPosition;
+                anuInsideAvatar.rectTransform.sizeDelta = new Vector2(250f, 650f);
+            }
+        }
+
+        public void OnWipeSinkClicked()
+        {
+            if (isWipeVideoInProgress) return;
+            if (currentStepIndex != 7) return;
+
+            Debug.Log("[U8 Step7] Wipe Sink button clicked");
+            isWipeVideoInProgress = true;
+
+            if (btnWipeSink != null)
+            {
+                btnWipeSink.interactable = false;
+            }
+
+            StartCoroutine(WipeSinkVideoFlowRoutine());
+        }
+
+        private IEnumerator WipeSinkVideoFlowRoutine()
+        {
+            Debug.Log("[U8 Step7] Blink transition started");
+
+            EnsureWipeVideoOverlay();
+
+            bool peakReached = false;
+
+            if (U8_GameManager_Masters_Activity.Instance != null)
+            {
+                U8_GameManager_Masters_Activity.Instance.BlinkTransition(
+                    onPeakDarkness: () =>
+                    {
+                        peakReached = true;
+                        HideOldPart2ControlsForVideo();
+                        if (wipeVideoOverlay != null)
+                        {
+                            wipeVideoOverlay.transform.SetAsLastSibling();
+                            wipeVideoOverlay.SetActive(true);
+                        }
+                        StartWipingSinkVideo();
+                    },
+                    customFadeDur: 0.22f,
+                    customHoldDur: 0.08f
+                );
+            }
+            else
+            {
+                HideOldPart2ControlsForVideo();
+                if (wipeVideoOverlay != null)
+                {
+                    wipeVideoOverlay.transform.SetAsLastSibling();
+                    wipeVideoOverlay.SetActive(true);
+                }
+                StartWipingSinkVideo();
+                peakReached = true;
+            }
+
+            while (!peakReached)
+            {
                 yield return null;
             }
-            anuInsideAvatar.rectTransform.anchoredPosition = wipePos;
 
-            // Switch to clean wiping sprite (Anu holding blue wiping cloth directly on the real washroom sink)
-            if (anuWipingSprite != null)
-            {
-                anuInsideAvatar.sprite = anuWipingSprite;
-                anuInsideAvatar.preserveAspect = true;
-                anuInsideAvatar.rectTransform.sizeDelta = new Vector2(300f, 650f);
-            }
+            yield return new WaitForSeconds(0.25f);
+            Debug.Log("[U8 Step7] Wiping sink video started");
 
             if (U8_AudioManager_Masters_Activity.Instance != null)
             {
                 U8_AudioManager_Masters_Activity.Instance.PlaySFX("SFX_Wipe");
             }
 
-            // Scrubbing animation back and forth on the real sink rim
-            float scrubDuration = 1.6f;
-            float scrubTimer = 0f;
-            bool secondSfxPlayed = false;
-
-            while (scrubTimer < scrubDuration)
+            bool videoFinished = false;
+            if (wipeVideoPlayer != null)
             {
-                scrubTimer += Time.deltaTime;
-                float offset = Mathf.Sin(scrubTimer * 14f) * 12f;
-                anuInsideAvatar.rectTransform.anchoredPosition = new Vector2(wipePos.x + offset, wipePos.y);
-
-                if (!secondSfxPlayed && scrubTimer >= 0.8f)
+                UnityEngine.Video.VideoPlayer.EventHandler endHandler = null;
+                endHandler = (vp) =>
                 {
-                    secondSfxPlayed = true;
-                    if (U8_AudioManager_Masters_Activity.Instance != null)
+                    videoFinished = true;
+                };
+                wipeVideoPlayer.loopPointReached += endHandler;
+
+                double clipLen = (wipingSinkVideoClip != null && wipingSinkVideoClip.length > 0) ? wipingSinkVideoClip.length : 5.0;
+                float timeout = (float)clipLen + 2.0f;
+                float elapsed = 0f;
+
+                while (!videoFinished && elapsed < timeout)
+                {
+                    elapsed += Time.deltaTime;
+                    if (wipeVideoPlayer.isPlaying && wipeVideoPlayer.time >= wipeVideoPlayer.length - 0.1f && wipeVideoPlayer.length > 0.5)
                     {
-                        U8_AudioManager_Masters_Activity.Instance.PlaySFX("SFX_Wipe");
+                        videoFinished = true;
                     }
+                    yield return null;
                 }
 
-                yield return null;
+                wipeVideoPlayer.loopPointReached -= endHandler;
+                wipeVideoPlayer.Stop();
             }
-
-            anuInsideAvatar.rectTransform.anchoredPosition = wipePos;
-
-            // Real sink sparkles and is clean!
-            if (U8_AudioManager_Masters_Activity.Instance != null)
+            else
             {
-                U8_AudioManager_Masters_Activity.Instance.PlaySFX("SFX_Sparkle");
+                yield return new WaitForSeconds(4.0f);
             }
+
+            Debug.Log("[U8 Step7] Wiping sink video completed");
+
+            if (wipeVideoOverlay != null)
+            {
+                wipeVideoOverlay.SetActive(false);
+            }
+
+            RestorePart2ControlsAfterVideo();
 
             if (sinkImage != null && sinkCleanSprite != null)
             {
                 sinkImage.sprite = sinkCleanSprite;
             }
+
+            if (U8_AudioManager_Masters_Activity.Instance != null)
+            {
+                U8_AudioManager_Masters_Activity.Instance.PlaySFX("SFX_Sparkle");
+            }
+
             if (U8_GameManager_Masters_Activity.Instance != null)
             {
                 U8_GameManager_Masters_Activity.Instance.isSinkWiped = true;
             }
 
-            yield return new WaitForSeconds(0.4f);
-
-            // Switch back to normal idle pose and step back to original position
-            if (anuNormalSprite != null)
-            {
-                anuInsideAvatar.sprite = anuNormalSprite;
-                anuInsideAvatar.preserveAspect = true;
-                anuInsideAvatar.rectTransform.sizeDelta = new Vector2(250f, 650f);
-            }
-
-            elapsed = 0f;
-            while (elapsed < walkTime)
-            {
-                elapsed += Time.deltaTime;
-                anuInsideAvatar.rectTransform.anchoredPosition = Vector2.Lerp(wipePos, originalPos, elapsed / walkTime);
-                yield return null;
-            }
-            anuInsideAvatar.rectTransform.anchoredPosition = originalPos;
-
             currentStepIndex = 8;
             UpdateStepVisuals();
-            if (feedbackText != null) feedbackText.text = "Sink wiped clean and sparkling! Ready for the next person.";
+            if (feedbackText != null)
+            {
+                feedbackText.text = "Sink wiped clean and sparkling! Ready for the next person.";
+            }
 
-            yield return new WaitForSeconds(1.4f);
+            Debug.Log("[U8 Step7] Returning to existing Part 2 flow");
 
-            // When all 7 options are completed, blink and open Part 3 (U8_Screen_04_Part3AfterYou)
+            yield return new WaitForSeconds(1.5f);
+
+            if (U8_GameManager_Masters_Activity.Instance != null)
+            {
+                U8_GameManager_Masters_Activity.Instance.ShowPart(U8_GamePart.Part3_AfterYou);
+            }
+
+            isWipeVideoInProgress = false;
+        }
+
+        public void OnProceedToPart3Clicked()
+        {
+            if (U8_AudioManager_Masters_Activity.Instance != null)
+            {
+                U8_AudioManager_Masters_Activity.Instance.PlayButtonClick();
+            }
             if (U8_GameManager_Masters_Activity.Instance != null)
             {
                 U8_GameManager_Masters_Activity.Instance.ShowPart(U8_GamePart.Part3_AfterYou);
             }
         }
 
-        public void OnProceedToPart3Clicked()
+        private void OnDestroy()
         {
-            if (U8_GameManager_Masters_Activity.Instance != null)
+            if (wipeRenderTexture != null)
             {
-                U8_GameManager_Masters_Activity.Instance.ShowPart(U8_GamePart.Part3_AfterYou);
+                wipeRenderTexture.Release();
+                Destroy(wipeRenderTexture);
+                wipeRenderTexture = null;
             }
         }
     }

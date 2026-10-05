@@ -36,16 +36,35 @@ namespace Googolplex.Unit8
         [SerializeField] private GameObject runningWaterStreamObject;
         [SerializeField] private GameObject splashedSinkOverlay;
         [SerializeField] private GameObject cleanSinkSparkleOverlay;
+        [Header("Audio Clips (Inspector)")]
+        [SerializeField] private AudioClip voHereComesMeera;
+        [SerializeField] private AudioClip voOhDearShallWeTryAgain;
+        [SerializeField] private AudioClip voMeeraGasp;
+        [SerializeField] private AudioClip sfxSlip;
+        [SerializeField] private AudioClip sfxTapOff;
+        [SerializeField] private AudioClip sfxSparkle;
 
         private bool isEvaluating = false;
 
         private void Awake()
         {
             AutoFindUIReferences();
+            AutoWireAudioClips();
             EnsureMeeraSpritesLoaded();
 
             if (btnTryAgain != null) btnTryAgain.onClick.AddListener(OnTryAgainClicked);
             if (btnProceedToPart4 != null) btnProceedToPart4.onClick.AddListener(OnProceedToPart4Clicked);
+        }
+
+        public void AutoWireAudioClips()
+        {
+            if (U8_AudioManager_Masters_Activity.Instance == null) return;
+            if (voHereComesMeera == null) voHereComesMeera = U8_AudioManager_Masters_Activity.Instance.GetClip("VO_U8_12");
+            if (voOhDearShallWeTryAgain == null) voOhDearShallWeTryAgain = U8_AudioManager_Masters_Activity.Instance.GetClip("VO_U8_13");
+            if (voMeeraGasp == null) voMeeraGasp = U8_AudioManager_Masters_Activity.Instance.GetClip("VO_U8_MEE_2");
+            if (sfxSlip == null) sfxSlip = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_Slip");
+            if (sfxTapOff == null) sfxTapOff = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_TapOff");
+            if (sfxSparkle == null) sfxSparkle = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_Sparkle");
         }
 
         private void OnEnable()
@@ -354,7 +373,10 @@ namespace Googolplex.Unit8
         private void OnTryAgainClicked()
         {
             if (isEvaluating) return;
-
+            if (U8_AudioManager_Masters_Activity.Instance != null)
+            {
+                U8_AudioManager_Masters_Activity.Instance.PlayButtonClick();
+            }
             if (U8_GameManager_Masters_Activity.Instance != null)
             {
                 U8_GameManager_Masters_Activity.Instance.ResetUnitState();
@@ -365,7 +387,10 @@ namespace Googolplex.Unit8
         private void OnProceedToPart4Clicked()
         {
             if (isEvaluating) return;
-
+            if (U8_AudioManager_Masters_Activity.Instance != null)
+            {
+                U8_AudioManager_Masters_Activity.Instance.PlayButtonClick();
+            }
             if (U8_GameManager_Masters_Activity.Instance != null)
             {
                 U8_GameManager_Masters_Activity.Instance.ShowPart(U8_GamePart.Part4_EmptySoap);

@@ -23,13 +23,33 @@ namespace Googolplex.Unit8
         [SerializeField] private GameObject confettiEffectObject;
         [SerializeField] private Button btnRestartActivity;
 
+        [Header("Audio Clips (Inspector)")]
+        [SerializeField] private AudioClip voThreeStarsReady;
+        [SerializeField] private AudioClip voWouldNextPersonBeHappy;
+        [SerializeField] private AudioClip musWin;
+        [SerializeField] private AudioClip sfxConfetti;
+        [SerializeField] private AudioClip sfxClap;
+        [SerializeField] private AudioClip sfxStar;
+
         private void Awake()
         {
             AutoFindUIReferences();
+            AutoWireAudioClips();
             if (btnRestartActivity != null)
             {
                 btnRestartActivity.onClick.AddListener(OnRestartClicked);
             }
+        }
+
+        public void AutoWireAudioClips()
+        {
+            if (U8_AudioManager_Masters_Activity.Instance == null) return;
+            if (voThreeStarsReady == null) voThreeStarsReady = U8_AudioManager_Masters_Activity.Instance.GetClip("VO_U8_15");
+            if (voWouldNextPersonBeHappy == null) voWouldNextPersonBeHappy = U8_AudioManager_Masters_Activity.Instance.GetClip("VO_U8_16");
+            if (musWin == null) musWin = U8_AudioManager_Masters_Activity.Instance.GetClip("MUS_Win");
+            if (sfxConfetti == null) sfxConfetti = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_Confetti");
+            if (sfxClap == null) sfxClap = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_Clap");
+            if (sfxStar == null) sfxStar = U8_AudioManager_Masters_Activity.Instance.GetClip("SFX_Star");
         }
 
         private void OnEnable()
@@ -169,6 +189,10 @@ namespace Googolplex.Unit8
 
         private void OnRestartClicked()
         {
+            if (U8_AudioManager_Masters_Activity.Instance != null)
+            {
+                U8_AudioManager_Masters_Activity.Instance.PlayButtonClick();
+            }
             if (U8_GameManager_Masters_Activity.Instance != null)
             {
                 U8_GameManager_Masters_Activity.Instance.ResetUnitState();

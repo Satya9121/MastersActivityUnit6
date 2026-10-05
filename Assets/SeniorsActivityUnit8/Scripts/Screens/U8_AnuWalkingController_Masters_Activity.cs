@@ -109,6 +109,15 @@ namespace Googolplex.Unit8
             {
                 idleSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/SeniorsActivityUnit8/Art/SPR_Anu_Walk_Idle.png");
             }
+            if (knockSprites == null || knockSprites.Length < 5 || knockSprites[0] == null || knockSprites[1] == null || knockSprites[2] == null)
+            {
+                knockSprites = new Sprite[5];
+                knockSprites[0] = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/SeniorsActivityUnit8/Art/SPR_Anu_Knock_0.png");
+                knockSprites[1] = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/SeniorsActivityUnit8/Art/SPR_Anu_Knock_1.png");
+                knockSprites[2] = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/SeniorsActivityUnit8/Art/SPR_Anu_Knock_2.png");
+                knockSprites[3] = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/SeniorsActivityUnit8/Art/SPR_Anu_Knock_3.png");
+                knockSprites[4] = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/SeniorsActivityUnit8/Art/SPR_Anu_Knock_4.png");
+            }
 #endif
         }
 
@@ -277,36 +286,42 @@ namespace Googolplex.Unit8
                 rectTransform.anchoredPosition = doorPosition;
             }
 
-            // Panel 5: Raise Hand (~48 deg)
+            // Panel 5: Raise Hand
             SetKnockSprite(1);
-            yield return new WaitForSeconds(0.22f);
-
-            // Panel 6: Knock 1 (Fist contacts door wood)
-            SetKnockSprite(2);
-            PlayKnockSFX();
-            yield return new WaitForSeconds(0.16f);
-
-            // Panel 7: Retract (Pulls back ~30px)
-            SetKnockSprite(3);
-            yield return new WaitForSeconds(0.14f);
-
-            // Panel 8: Knock 2 (Fist contacts door wood)
-            SetKnockSprite(2);
-            PlayKnockSFX();
-            yield return new WaitForSeconds(0.16f);
-
-            // Panel 9: Retract (Pulls back ~30px)
-            SetKnockSprite(3);
-            yield return new WaitForSeconds(0.14f);
-
-            // Panel 10: Knock 3 (Fist contacts door wood)
-            SetKnockSprite(2);
-            PlayKnockSFX();
             yield return new WaitForSeconds(0.20f);
 
-            // Panel 11: Return Hand (Arm lowers back naturally)
-            SetKnockSprite(4);
+            // Panel 6: Knock 1 (Fist contacts door wood with knock impact sparkles)
+            SetKnockSprite(2);
+            if (rectTransform != null) rectTransform.anchoredPosition = new Vector2(doorPosition.x - 5f, doorPosition.y);
+            PlayKnockSFX();
+            yield return new WaitForSeconds(0.18f);
+
+            // Panel 7: Retract
+            SetKnockSprite(3);
+            if (rectTransform != null) rectTransform.anchoredPosition = doorPosition;
             yield return new WaitForSeconds(0.14f);
+
+            // Panel 8: Knock 2 (Fist contacts door wood with knock impact sparkles)
+            SetKnockSprite(2);
+            if (rectTransform != null) rectTransform.anchoredPosition = new Vector2(doorPosition.x - 5f, doorPosition.y);
+            PlayKnockSFX();
+            yield return new WaitForSeconds(0.18f);
+
+            // Panel 9: Retract
+            SetKnockSprite(3);
+            if (rectTransform != null) rectTransform.anchoredPosition = doorPosition;
+            yield return new WaitForSeconds(0.14f);
+
+            // Panel 10: Knock 3 (Fist contacts door wood with knock impact sparkles)
+            SetKnockSprite(2);
+            if (rectTransform != null) rectTransform.anchoredPosition = new Vector2(doorPosition.x - 5f, doorPosition.y);
+            PlayKnockSFX();
+            yield return new WaitForSeconds(0.22f);
+
+            // Panel 11: Return Hand (Arm lowers back)
+            SetKnockSprite(4);
+            if (rectTransform != null) rectTransform.anchoredPosition = doorPosition;
+            yield return new WaitForSeconds(0.16f);
 
             // Panel 12: Stand
             SetIdlePose();

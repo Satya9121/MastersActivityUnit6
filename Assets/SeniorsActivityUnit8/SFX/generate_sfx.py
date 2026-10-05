@@ -9,18 +9,20 @@ SFX_DIR = os.path.dirname(os.path.abspath(__file__))
 def create_wav(filename, duration, sample_func, sample_rate=44100, volume=0.7):
     filepath = os.path.join(SFX_DIR, filename)
     num_samples = int(duration * sample_rate)
-    with wave.open(filepath, 'w') as wav_file:
+    frames = bytearray()
+    for i in range(num_samples):
+        t = float(i) / sample_rate
+        sample_val = sample_func(t, duration)
+        sample_val = max(-1.0, min(1.0, sample_val)) * volume
+        packed_val = struct.pack('<h', int(sample_val * 32767.0))
+        frames.extend(packed_val)
+    with wave.open(filepath, 'wb') as wav_file:
         wav_file.setnchannels(1)  # Mono
         wav_file.setsampwidth(2)  # 16-bit
         wav_file.setframerate(sample_rate)
-        
-        for i in range(num_samples):
-            t = float(i) / sample_rate
-            sample_val = sample_func(t, duration)
-            sample_val = max(-1.0, min(1.0, sample_val)) * volume
-            packed_val = struct.pack('<h', int(sample_val * 32767.0))
-            wav_file.writeframesraw(packed_val)
-    print(f"  -> Generated SFX: {filename} ({duration:.2f}s)")
+        wav_file.writeframes(frames)
+    file_size = os.path.getsize(filepath)
+    print(f"  -> Generated SFX: {filename} ({duration:.2f}s, {file_size} bytes)")
 
 def main():
     print(f"Generating Unit 8 Audio SFX in: {SFX_DIR}")
