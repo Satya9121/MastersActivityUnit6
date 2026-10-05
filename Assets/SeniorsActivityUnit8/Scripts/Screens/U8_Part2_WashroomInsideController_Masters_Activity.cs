@@ -41,18 +41,62 @@ namespace Googolplex.Unit8
         [SerializeField] private Sprite anuNormalSprite;
         [SerializeField] private Sprite anuWashingSprite;
         [SerializeField] private Sprite anuWipingSprite;
+        [SerializeField] private Sprite[] anuWalkSprites = new Sprite[8];
 
         private int currentStepIndex = 1;
-        private Vector2 anuEditorPosition;
-        private Vector2 anuCubiclePosition;
+        private Vector2 anuEditorPosition = new Vector2(-240f, -80f);
+        private Vector2 anuCubiclePosition = new Vector2(-710f, -80f);
         private Vector2 towelInAirEditorPos;
         private bool positionsCached = false;
 
         private void Awake()
         {
+            EnsureAnuSpritesLoaded();
             AutoFindUIReferences();
             CacheEditorPositions();
             RegisterListeners();
+        }
+
+        public void EnsureAnuSpritesLoaded()
+        {
+#if UNITY_EDITOR
+            if (anuNormalSprite == null)
+            {
+                anuNormalSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/SeniorsActivityUnit8/Art/SPR_Anu_Normal.png");
+            }
+            anuWipingSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/SeniorsActivityUnit8/Art/crop_wipe.png");
+            if (cubicleOpenSprite == null)
+            {
+                cubicleOpenSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/SeniorsActivityUnit8/Art/SPR_Cubicle_Open.png");
+            }
+            if (cubicleClosedSprite == null)
+            {
+                cubicleClosedSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/SeniorsActivityUnit8/Art/SPR_Cubicle_Closed.png");
+            }
+            if (sinkCleanSprite == null)
+            {
+                sinkCleanSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/SeniorsActivityUnit8/Art/SPR_Sink_Clean.png");
+            }
+            if (sinkSplashedSprite == null)
+            {
+                sinkSplashedSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/SeniorsActivityUnit8/Art/SPR_Sink_Splashed.png");
+            }
+            EnsureAnuWalkSpritesLoaded();
+#endif
+        }
+
+        public void EnsureAnuWalkSpritesLoaded()
+        {
+#if UNITY_EDITOR
+            if (anuWalkSprites == null || anuWalkSprites.Length < 8 || anuWalkSprites[0] == null)
+            {
+                anuWalkSprites = new Sprite[8];
+                for (int i = 0; i < 8; i++)
+                {
+                    anuWalkSprites[i] = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/SeniorsActivityUnit8/Art/SPR_Anu_Walk_Right_{i + 1}.png");
+                }
+            }
+#endif
         }
 
         private void CacheEditorPositions()
@@ -62,24 +106,13 @@ namespace Googolplex.Unit8
             if (anuInsideAvatar != null)
             {
                 anuEditorPosition = anuInsideAvatar.rectTransform.anchoredPosition;
+                if (anuEditorPosition.x < -400f)
+                {
+                    anuEditorPosition = new Vector2(-240f, -80f);
+                }
                 
-                if (cubicleDoorImage != null && anuInsideAvatar.transform.parent != null)
-                {
-                    // Convert cubicle door world position into Anu's parent coordinate space
-                    Vector3 worldPos = cubicleDoorImage.transform.position;
-                    Vector3 localPos = anuInsideAvatar.transform.parent.InverseTransformPoint(worldPos);
-                    anuCubiclePosition = new Vector2(localPos.x, anuEditorPosition.y);
-                }
-                else
-                {
-                    anuCubiclePosition = new Vector2(-560f, anuEditorPosition.y);
-                }
-
-                // Ensure cubicle start position is strictly to the left of the sink
-                if (anuCubiclePosition.x >= anuEditorPosition.x)
-                {
-                    anuCubiclePosition.x = anuEditorPosition.x - 340f;
-                }
+                // Position Anu inside the cubicle stall (centered near x = -710f, in front of the toilet)
+                anuCubiclePosition = new Vector2(-710f, anuEditorPosition.y);
             }
 
             if (towelInAirImage != null)
@@ -92,6 +125,7 @@ namespace Googolplex.Unit8
 
         private void OnEnable()
         {
+            EnsureAnuSpritesLoaded();
             AutoFindUIReferences();
             RegisterListeners();
             CacheEditorPositions();
@@ -104,8 +138,13 @@ namespace Googolplex.Unit8
                 {
                     anuInsideAvatar.gameObject.SetActive(true);
                     anuInsideAvatar.rectTransform.anchoredPosition = anuEditorPosition;
+                    anuInsideAvatar.rectTransform.localScale = Vector3.one;
+                    anuInsideAvatar.rectTransform.sizeDelta = new Vector2(250f, 650f);
                     if (anuNormalSprite != null) anuInsideAvatar.sprite = anuNormalSprite;
                 }
+                if (tapWaterStream != null) tapWaterStream.gameObject.SetActive(true);
+                if (sinkImage != null && sinkSplashedSprite != null) sinkImage.sprite = sinkSplashedSprite;
+
                 UpdateStepVisuals();
                 if (feedbackText != null) feedbackText.text = "Hands clean! Now let's turn off the tap.";
                 if (U8_AudioManager_Masters_Activity.Instance != null)
@@ -179,7 +218,6 @@ namespace Googolplex.Unit8
             {
                 anuInsideAvatar.preserveAspect = true;
                 if (anuNormalSprite != null && anuInsideAvatar.sprite == null) anuInsideAvatar.sprite = anuNormalSprite;
-                anuInsideAvatar.SetNativeSize();
             }
         }
 
@@ -321,8 +359,15 @@ namespace Googolplex.Unit8
             currentStepIndex = 1;
 
             if (cubicleDoorImage != null && cubicleOpenSprite != null) cubicleDoorImage.sprite = cubicleOpenSprite;
-            if (tapWaterStream != null) tapWaterStream.gameObject.SetActive(true);
-            if (sinkImage != null && sinkSplashedSprite != null) sinkImage.sprite = sinkSplashedSprite;
+            
+            // Tap is OFF initially: only turns on when "4. Wash Hands" is clicked
+            if (tapWaterStream != null) tapWaterStream.gameObject.SetActive(false);
+            if (sinkImage != null && sinkCleanSprite != null) sinkImage.sprite = sinkCleanSprite;
+            if (U8_AudioManager_Masters_Activity.Instance != null)
+            {
+                U8_AudioManager_Masters_Activity.Instance.StopAmbience();
+            }
+
             if (soggyTowelOnFloorImage != null) soggyTowelOnFloorImage.gameObject.SetActive(false);
             if (towelInAirImage != null)
             {
@@ -330,13 +375,35 @@ namespace Googolplex.Unit8
                 towelInAirImage.rectTransform.anchoredPosition = towelInAirEditorPos;
             }
             if (btnProceedToPart3 != null) btnProceedToPart3.gameObject.SetActive(false);
+            
+            // Anu is visible inside the washroom stall when Part 2 starts!
             if (anuInsideAvatar != null)
             {
-                anuInsideAvatar.gameObject.SetActive(false);
+                anuInsideAvatar.gameObject.SetActive(true);
                 anuInsideAvatar.rectTransform.anchoredPosition = anuCubiclePosition;
+                anuInsideAvatar.rectTransform.localScale = Vector3.one;
+                anuInsideAvatar.rectTransform.sizeDelta = new Vector2(520f, 650f);
                 if (anuNormalSprite != null) anuInsideAvatar.sprite = anuNormalSprite;
                 anuInsideAvatar.preserveAspect = true;
-                anuInsideAvatar.SetNativeSize();
+
+                // Place Anu in front of the cubicle background so she is fully visible standing inside the cubicle stall!
+                Transform cubicleT = cubicleDoorImage != null ? cubicleDoorImage.transform.parent : transform.Find("Cubicle");
+                if (cubicleT != null)
+                {
+                    anuInsideAvatar.transform.SetSiblingIndex(cubicleT.GetSiblingIndex() + 1);
+                }
+                else
+                {
+                    Transform promptCard = transform.Find("PromptCard") ?? transform.Find("Prompt");
+                    if (promptCard != null)
+                    {
+                        anuInsideAvatar.transform.SetSiblingIndex(promptCard.GetSiblingIndex());
+                    }
+                    else
+                    {
+                        anuInsideAvatar.transform.SetAsLastSibling();
+                    }
+                }
             }
 
             UpdateStepVisuals();
@@ -523,6 +590,12 @@ namespace Googolplex.Unit8
             if (cubicleDoorImage != null && cubicleClosedSprite != null) cubicleDoorImage.sprite = cubicleClosedSprite;
             if (U8_GameManager_Masters_Activity.Instance != null) U8_GameManager_Masters_Activity.Instance.isCubicleClosedFirst = true;
 
+            // Anu is inside the closed cubicle stall, covered by the closed door
+            if (anuInsideAvatar != null)
+            {
+                anuInsideAvatar.gameObject.SetActive(false);
+            }
+
             currentStepIndex = 2;
             UpdateStepVisuals();
             if (feedbackText != null) feedbackText.text = "Door bolted safely! Remember to flush.";
@@ -553,29 +626,81 @@ namespace Googolplex.Unit8
 
         private IEnumerator AnuExitCubicleRoutine()
         {
-            if (cubicleDoorImage != null && cubicleOpenSprite != null) cubicleDoorImage.sprite = cubicleOpenSprite;
-            
+            if (cubicleDoorImage != null && cubicleOpenSprite != null)
+            {
+                cubicleDoorImage.sprite = cubicleOpenSprite;
+            }
+            if (U8_AudioManager_Masters_Activity.Instance != null)
+            {
+                U8_AudioManager_Masters_Activity.Instance.PlaySFX("SFX_BoltClick");
+            }
+
             if (anuInsideAvatar != null)
             {
+                EnsureAnuWalkSpritesLoaded();
                 anuInsideAvatar.gameObject.SetActive(true);
-                if (anuNormalSprite != null) anuInsideAvatar.sprite = anuNormalSprite;
                 anuInsideAvatar.preserveAspect = true;
-                anuInsideAvatar.SetNativeSize();
-                
-                // Smooth walk over from cubicle to the exact position set in the scene
+
+                // Bring Anu forward so she walks in front into the room
+                Transform promptCard = transform.Find("PromptCard") ?? transform.Find("Prompt");
+                if (promptCard != null)
+                {
+                    anuInsideAvatar.transform.SetSiblingIndex(promptCard.GetSiblingIndex());
+                }
+                else
+                {
+                    anuInsideAvatar.transform.SetAsLastSibling();
+                }
+
+                // Native right-facing walk frames
+                anuInsideAvatar.rectTransform.localScale = Vector3.one;
+                anuInsideAvatar.rectTransform.sizeDelta = new Vector2(520f, 650f);
+
                 Vector2 startPos = anuCubiclePosition;
                 Vector2 sinkPos = anuEditorPosition;
-                for (float t = 0; t < 1f; t += Time.deltaTime * 2.5f)
+                anuInsideAvatar.rectTransform.anchoredPosition = startPos;
+
+                yield return new WaitForSeconds(0.25f);
+
+                // Smooth walking movement from cubicle to sink
+                float currentX = startPos.x;
+                float targetX = sinkPos.x;
+                float speed = 210f;
+                float timer = 0f;
+                float stepTimer = 0f;
+                int stepIdx = 0;
+
+                while (currentX < targetX)
                 {
-                    anuInsideAvatar.rectTransform.anchoredPosition = Vector2.Lerp(startPos, sinkPos, t);
+                    timer += Time.deltaTime;
+                    stepTimer += Time.deltaTime;
+
+                    currentX += speed * Time.deltaTime;
+                    if (currentX > targetX) currentX = targetX;
+
+                    float bobY = Mathf.Sin(timer * 16f) * 2f;
+                    anuInsideAvatar.rectTransform.anchoredPosition = new Vector2(currentX, sinkPos.y + bobY);
+
+                    if (stepTimer >= 0.14f)
+                    {
+                        stepTimer = 0f;
+                        stepIdx = (stepIdx + 1) % 4;
+                        if (anuWalkSprites != null && anuWalkSprites.Length >= 4 && anuWalkSprites[stepIdx] != null)
+                        {
+                            anuInsideAvatar.sprite = anuWalkSprites[stepIdx];
+                        }
+                    }
+
                     yield return null;
                 }
+
+                // Arrived at the sink: face front/normal, polite standing posture (NO washing hands on Screen 2!)
                 anuInsideAvatar.rectTransform.anchoredPosition = sinkPos;
-                if (anuWashingSprite != null)
+                anuInsideAvatar.rectTransform.localScale = Vector3.one;
+                anuInsideAvatar.rectTransform.sizeDelta = new Vector2(520f, 650f);
+                if (anuNormalSprite != null)
                 {
-                    anuInsideAvatar.sprite = anuWashingSprite;
-                    anuInsideAvatar.preserveAspect = true;
-                    anuInsideAvatar.SetNativeSize();
+                    anuInsideAvatar.sprite = anuNormalSprite;
                 }
             }
 
@@ -591,7 +716,28 @@ namespace Googolplex.Unit8
 
         public void OnWashHandsClicked()
         {
-            Debug.Log("[U8_Part2] Step 4 Clicked: Opening Handwash Screen immediately.");
+            if (currentStepIndex != 4) return;
+            Debug.Log("[U8_Part2] Step 4 Clicked: Turning tap on and opening Handwash Screen smoothly.");
+            StartCoroutine(WashHandsTransitionRoutine());
+        }
+
+        private IEnumerator WashHandsTransitionRoutine()
+        {
+            // 1. Turn the tap ON: water stream starts and sound plays
+            if (tapWaterStream != null) tapWaterStream.gameObject.SetActive(true);
+            if (sinkImage != null && sinkSplashedSprite != null) sinkImage.sprite = sinkSplashedSprite;
+            if (U8_AudioManager_Masters_Activity.Instance != null)
+            {
+                U8_AudioManager_Masters_Activity.Instance.PlaySFX("SFX_TapOn");
+                U8_AudioManager_Masters_Activity.Instance.PlayAmbience("SFX_TapOn", true);
+            }
+
+            if (feedbackText != null) feedbackText.text = "Washing hands with soap and water!";
+
+            // Quick, smooth, natural pause
+            yield return new WaitForSeconds(0.4f);
+
+            // Transition smoothly to Handwash Screen
             var gm = U8_GameManager_Masters_Activity.Instance ?? FindFirstObjectByType<U8_GameManager_Masters_Activity>(FindObjectsInactive.Include);
             if (gm != null)
             {
@@ -607,6 +753,7 @@ namespace Googolplex.Unit8
                 U8_AudioManager_Masters_Activity.Instance.PlaySFX("SFX_TapOff");
             }
             if (tapWaterStream != null) tapWaterStream.gameObject.SetActive(false);
+            if (sinkImage != null && sinkCleanSprite != null) sinkImage.sprite = sinkCleanSprite;
             if (U8_GameManager_Masters_Activity.Instance != null) U8_GameManager_Masters_Activity.Instance.isTapTurnedOff = true;
 
             currentStepIndex = 6;
@@ -723,34 +870,108 @@ namespace Googolplex.Unit8
 
         private IEnumerator WipeSinkRoutine()
         {
-            if (anuInsideAvatar != null && anuWipingSprite != null)
+            if (anuInsideAvatar == null) yield break;
+
+            EnsureAnuSpritesLoaded();
+
+            Vector2 originalPos = anuInsideAvatar.rectTransform.anchoredPosition;
+            // Step forward towards the real washroom sink (SinkImage) so Anu's hands with blue cloth wipe the real sink rim & bowl
+            Vector2 wipePos = new Vector2(-155f, originalPos.y);
+
+            // Smoothly step forward towards the real sink
+            float walkTime = 0.35f;
+            float elapsed = 0f;
+            while (elapsed < walkTime)
+            {
+                elapsed += Time.deltaTime;
+                anuInsideAvatar.rectTransform.anchoredPosition = Vector2.Lerp(originalPos, wipePos, elapsed / walkTime);
+                yield return null;
+            }
+            anuInsideAvatar.rectTransform.anchoredPosition = wipePos;
+
+            // Switch to clean wiping sprite (Anu holding blue wiping cloth directly on the real washroom sink)
+            if (anuWipingSprite != null)
             {
                 anuInsideAvatar.sprite = anuWipingSprite;
                 anuInsideAvatar.preserveAspect = true;
-                anuInsideAvatar.SetNativeSize();
+                anuInsideAvatar.rectTransform.sizeDelta = new Vector2(300f, 650f);
             }
 
             if (U8_AudioManager_Masters_Activity.Instance != null)
             {
                 U8_AudioManager_Masters_Activity.Instance.PlaySFX("SFX_Wipe");
+            }
+
+            // Scrubbing animation back and forth on the real sink rim
+            float scrubDuration = 1.6f;
+            float scrubTimer = 0f;
+            bool secondSfxPlayed = false;
+
+            while (scrubTimer < scrubDuration)
+            {
+                scrubTimer += Time.deltaTime;
+                float offset = Mathf.Sin(scrubTimer * 14f) * 12f;
+                anuInsideAvatar.rectTransform.anchoredPosition = new Vector2(wipePos.x + offset, wipePos.y);
+
+                if (!secondSfxPlayed && scrubTimer >= 0.8f)
+                {
+                    secondSfxPlayed = true;
+                    if (U8_AudioManager_Masters_Activity.Instance != null)
+                    {
+                        U8_AudioManager_Masters_Activity.Instance.PlaySFX("SFX_Wipe");
+                    }
+                }
+
+                yield return null;
+            }
+
+            anuInsideAvatar.rectTransform.anchoredPosition = wipePos;
+
+            // Real sink sparkles and is clean!
+            if (U8_AudioManager_Masters_Activity.Instance != null)
+            {
                 U8_AudioManager_Masters_Activity.Instance.PlaySFX("SFX_Sparkle");
             }
 
-            if (sinkImage != null && sinkCleanSprite != null) sinkImage.sprite = sinkCleanSprite;
-            if (U8_GameManager_Masters_Activity.Instance != null) U8_GameManager_Masters_Activity.Instance.isSinkWiped = true;
+            if (sinkImage != null && sinkCleanSprite != null)
+            {
+                sinkImage.sprite = sinkCleanSprite;
+            }
+            if (U8_GameManager_Masters_Activity.Instance != null)
+            {
+                U8_GameManager_Masters_Activity.Instance.isSinkWiped = true;
+            }
 
-            yield return new WaitForSeconds(1.2f);
+            yield return new WaitForSeconds(0.4f);
 
-            if (anuInsideAvatar != null && anuNormalSprite != null)
+            // Switch back to normal idle pose and step back to original position
+            if (anuNormalSprite != null)
             {
                 anuInsideAvatar.sprite = anuNormalSprite;
                 anuInsideAvatar.preserveAspect = true;
-                anuInsideAvatar.SetNativeSize();
+                anuInsideAvatar.rectTransform.sizeDelta = new Vector2(250f, 650f);
             }
+
+            elapsed = 0f;
+            while (elapsed < walkTime)
+            {
+                elapsed += Time.deltaTime;
+                anuInsideAvatar.rectTransform.anchoredPosition = Vector2.Lerp(wipePos, originalPos, elapsed / walkTime);
+                yield return null;
+            }
+            anuInsideAvatar.rectTransform.anchoredPosition = originalPos;
 
             currentStepIndex = 8;
             UpdateStepVisuals();
             if (feedbackText != null) feedbackText.text = "Sink wiped clean and sparkling! Ready for the next person.";
+
+            yield return new WaitForSeconds(1.4f);
+
+            // When all 7 options are completed, blink and open Part 3 (U8_Screen_04_Part3AfterYou)
+            if (U8_GameManager_Masters_Activity.Instance != null)
+            {
+                U8_GameManager_Masters_Activity.Instance.ShowPart(U8_GamePart.Part3_AfterYou);
+            }
         }
 
         public void OnProceedToPart3Clicked()

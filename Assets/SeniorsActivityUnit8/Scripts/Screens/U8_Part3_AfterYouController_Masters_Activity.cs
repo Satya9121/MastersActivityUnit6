@@ -16,10 +16,16 @@ namespace Googolplex.Unit8
         [Header("Meera Character Avatars & Poses")]
         [SerializeField] private Image meeraAvatar;
         [SerializeField] private Sprite meeraEnteringSprite;
+        [SerializeField] private Sprite meeraIdleSprite;
         [SerializeField] private Sprite meeraSlippingSprite;
         [SerializeField] private Sprite meeraUnimpressedSprite;
         [SerializeField] private Sprite meeraPumpingSoapSprite;
         [SerializeField] private Sprite meeraHappySmileSprite;
+        [SerializeField] private Sprite[] meeraWalkSprites = new Sprite[8];
+
+        [Header("Walking Settings")]
+        [SerializeField] private float walkSpeed = 240f;
+        [SerializeField] private float stepFrameDuration = 0.12f;
 
         [Header("Washroom State Overlay Visuals")]
         [SerializeField] private Image sinkImage;
@@ -36,6 +42,7 @@ namespace Googolplex.Unit8
         private void Awake()
         {
             AutoFindUIReferences();
+            EnsureMeeraSpritesLoaded();
 
             if (btnTryAgain != null) btnTryAgain.onClick.AddListener(OnTryAgainClicked);
             if (btnProceedToPart4 != null) btnProceedToPart4.onClick.AddListener(OnProceedToPart4Clicked);
@@ -44,6 +51,7 @@ namespace Googolplex.Unit8
         private void OnEnable()
         {
             AutoFindUIReferences();
+            EnsureMeeraSpritesLoaded();
             StartCoroutine(EvaluateMeeraEntrySequence());
         }
 
@@ -78,9 +86,15 @@ namespace Googolplex.Unit8
             }
             if (meeraAvatar != null)
             {
+                meeraAvatar.gameObject.SetActive(true);
                 meeraAvatar.preserveAspect = true;
-                if (meeraEnteringSprite != null && meeraAvatar.sprite == null) meeraAvatar.sprite = meeraEnteringSprite;
-                meeraAvatar.SetNativeSize();
+                meeraAvatar.rectTransform.localScale = Vector3.one;
+                meeraAvatar.rectTransform.localRotation = Quaternion.identity;
+                meeraAvatar.rectTransform.sizeDelta = new Vector2(580f, 754f);
+                if (meeraAvatar.sprite == null || meeraAvatar.sprite.name.Contains("Meera U8 SA _0"))
+                {
+                    meeraAvatar.sprite = (meeraIdleSprite != null) ? meeraIdleSprite : meeraEnteringSprite;
+                }
             }
 
             // Auto-find all overlay GameObjects
@@ -116,9 +130,37 @@ namespace Googolplex.Unit8
             }
         }
 
+        public void EnsureMeeraSpritesLoaded()
+        {
+#if UNITY_EDITOR
+            if (meeraWalkSprites == null || meeraWalkSprites.Length < 8 || meeraWalkSprites[0] == null)
+            {
+                meeraWalkSprites = new Sprite[8];
+                for (int i = 0; i < 8; i++)
+                {
+                    meeraWalkSprites[i] = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/SeniorsActivityUnit8/Art/SPR_Meera_Walk_Right_{i + 1}.png");
+                }
+            }
+            if (meeraIdleSprite == null)
+            {
+                meeraIdleSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/SeniorsActivityUnit8/Art/SPR_Meera_Walk_Right_Idle.png");
+            }
+            if (meeraEnteringSprite == null || meeraEnteringSprite.name.Contains("Meera U8 SA _0"))
+            {
+                meeraEnteringSprite = (meeraIdleSprite != null) ? meeraIdleSprite : meeraWalkSprites[0];
+            }
+            if (meeraAvatar != null && (meeraAvatar.sprite == null || meeraAvatar.sprite.name.Contains("Meera U8 SA _0")))
+            {
+                meeraAvatar.sprite = (meeraIdleSprite != null) ? meeraIdleSprite : meeraWalkSprites[0];
+            }
+#endif
+        }
+
         private IEnumerator EvaluateMeeraEntrySequence()
         {
             isEvaluating = true;
+            EnsureMeeraSpritesLoaded();
+
             if (btnTryAgain != null) btnTryAgain.gameObject.SetActive(false);
             if (btnProceedToPart4 != null) btnProceedToPart4.gameObject.SetActive(false);
 
@@ -149,43 +191,23 @@ namespace Googolplex.Unit8
                 U8_AudioManager_Masters_Activity.Instance.PlayAmbience("SFX_TapOn", true);
             }
 
-            // Phase 1: 3-second camera pause on empty washroom (per spec)
-            if (meeraAvatar != null) meeraAvatar.gameObject.SetActive(false);
-            if (promptText != null) promptText.text = "";
-            if (feedbackText != null) feedbackText.text = "";
-
-            yield return new WaitForSeconds(2.8f);
-
-            // Phase 2: Door opens and Meera enters from the left
-            if (U8_AudioManager_Masters_Activity.Instance != null)
-            {
-                U8_AudioManager_Masters_Activity.Instance.PlayVO("VO_U8_12"); // "Here comes Meera."
-            }
+            // Phase 1: Meera is already standing on the ground at her correct position on frame 1
+            Vector2 standPos = isFloorWet ? new Vector2(-220f, -50f) : new Vector2(-95f, -50f);
 
             if (meeraAvatar != null)
             {
                 meeraAvatar.gameObject.SetActive(true);
-                if (meeraEnteringSprite != null) meeraAvatar.sprite = meeraEnteringSprite;
                 meeraAvatar.preserveAspect = true;
-                meeraAvatar.SetNativeSize();
                 meeraAvatar.transform.localRotation = Quaternion.identity;
-
-                Vector2 doorPos = new Vector2(-520f, -50f);
-                Vector2 walkTarget = isFloorWet ? new Vector2(-220f, -50f) : new Vector2(-110f, -50f);
-
-                meeraAvatar.rectTransform.anchoredPosition = doorPos;
-
-                for (float t = 0; t < 1f; t += Time.deltaTime * 2.2f)
-                {
-                    meeraAvatar.rectTransform.anchoredPosition = Vector2.Lerp(doorPos, walkTarget, t);
-                    yield return null;
-                }
-                meeraAvatar.rectTransform.anchoredPosition = walkTarget;
+                meeraAvatar.rectTransform.localScale = Vector3.one;
+                meeraAvatar.rectTransform.sizeDelta = new Vector2(580f, 754f);
+                meeraAvatar.rectTransform.anchoredPosition = standPos;
+                meeraAvatar.sprite = (meeraIdleSprite != null) ? meeraIdleSprite : meeraAvatar.sprite;
             }
 
-            yield return new WaitForSeconds(0.3f);
+            yield return new WaitForSeconds(0.2f);
 
-            // Phase 3: Evaluate Consequence
+            // Phase 2: Evaluate Consequence immediately
             if (isAllClean)
             {
                 // ====================================================
@@ -193,22 +215,11 @@ namespace Googolplex.Unit8
                 // ====================================================
                 if (meeraAvatar != null)
                 {
-                    // Step right next to the basin
-                    Vector2 sinkPos = new Vector2(-95f, -50f);
-                    Vector2 currentPos = meeraAvatar.rectTransform.anchoredPosition;
-                    for (float t = 0; t < 1f; t += Time.deltaTime * 2.5f)
-                    {
-                        meeraAvatar.rectTransform.anchoredPosition = Vector2.Lerp(currentPos, sinkPos, t);
-                        yield return null;
-                    }
-                    meeraAvatar.rectTransform.anchoredPosition = sinkPos;
-
                     // Meera smiles happily with open arms
                     if (meeraHappySmileSprite != null)
                     {
                         meeraAvatar.sprite = meeraHappySmileSprite;
                         meeraAvatar.preserveAspect = true;
-                        meeraAvatar.SetNativeSize();
                     }
                 }
 
@@ -225,8 +236,8 @@ namespace Googolplex.Unit8
 
                 if (gm != null) gm.AwardStar();
 
-                yield return new WaitForSeconds(1.6f);
-                if (btnProceedToPart4 != null) btnProceedToPart4.gameObject.SetActive(true);
+                yield return new WaitForSeconds(1.0f);
+                ShowChoiceButtons();
             }
             else
             {
@@ -241,7 +252,6 @@ namespace Googolplex.Unit8
                     {
                         meeraAvatar.sprite = meeraSlippingSprite;
                         meeraAvatar.preserveAspect = true;
-                        meeraAvatar.SetNativeSize();
                     }
 
                     if (U8_AudioManager_Masters_Activity.Instance != null)
@@ -295,7 +305,6 @@ namespace Googolplex.Unit8
                 {
                     meeraAvatar.sprite = meeraUnimpressedSprite;
                     meeraAvatar.preserveAspect = true;
-                    meeraAvatar.SetNativeSize();
                 }
 
                 if (promptText != null) promptText.text = "The sink was splashed and messy!";
@@ -311,11 +320,35 @@ namespace Googolplex.Unit8
                     U8_AudioManager_Masters_Activity.Instance.PlayVO("VO_U8_13"); // "Oh dear! Shall we try again?"
                 }
 
-                yield return new WaitForSeconds(1.5f);
-                if (btnTryAgain != null) btnTryAgain.gameObject.SetActive(true);
+                yield return new WaitForSeconds(1.2f);
+                ShowChoiceButtons();
             }
 
             isEvaluating = false;
+        }
+
+        private void ShowChoiceButtons()
+        {
+            Transform cc = transform.Find("ChoiceContainer");
+            if (cc != null) cc.gameObject.SetActive(true);
+
+            if (btnTryAgain != null)
+            {
+                btnTryAgain.gameObject.SetActive(true);
+                btnTryAgain.transform.localScale = Vector3.one;
+                var rt = btnTryAgain.GetComponent<RectTransform>();
+                if (rt != null) rt.anchoredPosition = new Vector2(-240f, 0f);
+                btnTryAgain.interactable = true;
+            }
+
+            if (btnProceedToPart4 != null)
+            {
+                btnProceedToPart4.gameObject.SetActive(true);
+                btnProceedToPart4.transform.localScale = Vector3.one;
+                var rt = btnProceedToPart4.GetComponent<RectTransform>();
+                if (rt != null) rt.anchoredPosition = new Vector2(240f, 0f);
+                btnProceedToPart4.interactable = true;
+            }
         }
 
         private void OnTryAgainClicked()

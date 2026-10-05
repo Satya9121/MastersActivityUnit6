@@ -93,6 +93,24 @@ namespace Googolplex.Unit8
             Debug.Log($"[U8_SceneSetupTool] Completed full Unit 8 scene generation. Target: {ScenePath}");
         }
 
+        [MenuItem("Googolplex/Unit 8/Setup Screen 1 Only (Part 1 Door & Anu Walking)", false, 10)]
+        public static void SetupScreen1Only()
+        {
+            BuildSpriteCache();
+            GameObject canvasGo = EnsureCanvas();
+            RectTransform canvasRect = canvasGo.GetComponent<RectTransform>();
+
+            GameObject p1 = CreateOrGetScreen(canvasRect, "U8_Screen_01_Part1Door", typeof(U8_Part1_DoorController_Masters_Activity));
+            SetupPart1UI(p1);
+            WirePart1Controller(p1);
+
+            Scene currentScene = SceneManager.GetActiveScene();
+            EditorSceneManager.MarkSceneDirty(currentScene);
+
+            EditorUtility.DisplayDialog("Screen 1 Updated", "Screen 1 (Part 1: The Door) has been updated with Anu Walking & Knocking animation, Animator, and Controller!", "OK");
+            Debug.Log("[U8_SceneSetupTool] Setup Screen 1 only completed.");
+        }
+
         [MenuItem("Googolplex/Unit 8/Setup Screen 2 Only (Part 2 Inside)", false, 11)]
         public static void SetupScreen2Only()
         {
@@ -120,7 +138,7 @@ namespace Googolplex.Unit8
                 if (anuT != null)
                 {
                     var img = anuT.GetComponent<Image>();
-                    if (img != null) { img.preserveAspect = true; img.SetNativeSize(); }
+                    if (img != null) { img.preserveAspect = true; }
                 }
             }
 
@@ -171,12 +189,24 @@ namespace Googolplex.Unit8
             if (c3 != null)
             {
                 var so = new SerializedObject(c3);
-                SetSerializedSprite(so, "meeraEnteringSprite", GetSprite("SPR_Meera_Entering"));
+                SetSerializedSprite(so, "meeraEnteringSprite", AssetDatabase.LoadAssetAtPath<Sprite>("Assets/SeniorsActivityUnit8/Art/SPR_Meera_Walk_Right_1.png"));
+                SetSerializedSprite(so, "meeraIdleSprite", AssetDatabase.LoadAssetAtPath<Sprite>("Assets/SeniorsActivityUnit8/Art/SPR_Meera_Walk_Right_Idle.png"));
                 SetSerializedSprite(so, "meeraSlippingSprite", GetSprite("SPR_Meera_Slip"));
                 SetSerializedSprite(so, "meeraUnimpressedSprite", GetSprite("SPR_Meera_Unimpressed"));
                 SetSerializedSprite(so, "meeraHappySmileSprite", GetSprite("SPR_Meera_Happy"));
                 SetSerializedSprite(so, "sinkCleanSprite", GetSprite("SPR_Sink_Clean"));
                 SetSerializedSprite(so, "sinkSplashedSprite", GetSprite("SPR_Sink_Splashed"));
+
+                var walkArrayProp = so.FindProperty("meeraWalkSprites");
+                if (walkArrayProp != null)
+                {
+                    walkArrayProp.arraySize = 8;
+                    for (int i = 0; i < 8; i++)
+                    {
+                        var elem = walkArrayProp.GetArrayElementAtIndex(i);
+                        elem.objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/SeniorsActivityUnit8/Art/SPR_Meera_Walk_Right_{i + 1}.png");
+                    }
+                }
 
                 SetSerializedGameObject(so, "wetFloorPuddleObject", p3.transform.Find("WetFloorPuddleObject")?.gameObject);
                 SetSerializedGameObject(so, "soggyTowelFloorObject", p3.transform.Find("SoggyTowelFloorObject")?.gameObject);
@@ -196,7 +226,11 @@ namespace Googolplex.Unit8
                     var avatarProp = so.FindProperty("meeraAvatar");
                     var img = avatarT.GetComponent<Image>();
                     if (avatarProp != null) avatarProp.objectReferenceValue = img;
-                    if (img != null) { img.preserveAspect = true; img.SetNativeSize(); }
+                    if (img != null)
+                    {
+                        img.preserveAspect = true;
+                        img.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/SeniorsActivityUnit8/Art/SPR_Meera_Walk_Right_Idle.png");
+                    }
                 }
 
                 so.ApplyModifiedProperties();
@@ -242,7 +276,7 @@ namespace Googolplex.Unit8
                     var avatarProp = so.FindProperty("meeraAvatar");
                     var img = avatarT.GetComponent<Image>();
                     if (avatarProp != null) avatarProp.objectReferenceValue = img;
-                    if (img != null) { img.preserveAspect = true; img.SetNativeSize(); }
+                    if (img != null) { img.preserveAspect = true; }
                 }
 
                 so.ApplyModifiedProperties();
@@ -301,7 +335,7 @@ namespace Googolplex.Unit8
                     var avatarProp = so.FindProperty("meeraWavingAvatar");
                     var img = avatarT.GetComponent<Image>();
                     if (avatarProp != null) avatarProp.objectReferenceValue = img;
-                    if (img != null) { img.preserveAspect = true; img.SetNativeSize(); }
+                    if (img != null) { img.preserveAspect = true; }
                 }
 
                 Transform btnRestartT = end.transform.Find("Btn_Restart") ?? end.transform.Find("BottomBar/Btn_Restart");
@@ -607,6 +641,10 @@ namespace Googolplex.Unit8
         {
             if (spriteCache.TryGetValue(name, out Sprite s)) return s;
 
+            // Direct file path fallback
+            Sprite direct = AssetDatabase.LoadAssetAtPath<Sprite>($"{ArtPath}/{name}.png");
+            if (direct != null) return direct;
+
             // Common aliases
             if (name == "SPR_Meera_Entering" && spriteCache.TryGetValue("Character \u2014 Meera U8 SA _0", out Sprite s0)) return s0;
             if (name == "SPR_Washroom_BG" && spriteCache.TryGetValue("SPR_Washroom_BG", out Sprite bg)) return bg;
@@ -744,9 +782,27 @@ namespace Googolplex.Unit8
             CreateHeader(screen, "UNIT 8: WASHROOM ETIQUETTE", "Part 1: The Door");
 
             // Door Image & Anu Avatar
-            CreateImage(screen, "WashroomDoor", new Vector2(-180, -20), new Vector2(320, 560), GetSprite("SPR_Cubicle_Closed"));
-            var anuImg1 = CreateImage(screen, "AnuAvatar", new Vector2(240, -60), new Vector2(250, 650), GetSprite("SPR_Anu_Normal"));
-            if (anuImg1 != null) { anuImg1.preserveAspect = true; anuImg1.SetNativeSize(); }
+            CreateImage(screen, "WashroomDoor", new Vector2(-798, 41), new Vector2(442, 774), GetSprite("SPR_Cubicle_Closed"));
+
+            // Anu Avatar: SizeDelta (264, 754), starting position (550, -70), facing left
+            var anuImg1 = CreateImage(screen, "AnuAvatar", new Vector2(620, -70), new Vector2(264, 754), GetSprite("SPR_Anu_Walk_1") ?? GetSprite("SPR_Anu_Walk_Idle") ?? GetSprite("SPR_Anu_Normal"));
+            if (anuImg1 != null)
+            {
+                anuImg1.preserveAspect = true;
+                anuImg1.rectTransform.localEulerAngles = Vector3.zero;
+                anuImg1.rectTransform.localScale = Vector3.one;
+
+                // Add Animator component
+                var anim = anuImg1.GetComponent<Animator>();
+                if (anim == null) anim = anuImg1.gameObject.AddComponent<Animator>();
+                var ctrlAsset = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>("Assets/SeniorsActivityUnit8/Animations/Anu_AnimatorController.controller");
+                if (ctrlAsset != null) anim.runtimeAnimatorController = ctrlAsset;
+
+                // Add U8_AnuWalkingController_Masters_Activity
+                var walkCtrl = anuImg1.GetComponent<U8_AnuWalkingController_Masters_Activity>();
+                if (walkCtrl == null) walkCtrl = anuImg1.gameObject.AddComponent<U8_AnuWalkingController_Masters_Activity>();
+                walkCtrl.AutoAssignSpritesIfNeeded();
+            }
 
             // Prompt Card
             CreatePromptCard(screen, "Prompt", "The door is closed. What should Anu do?", new Vector2(0, 380), new Vector2(1300, 90), 38);
@@ -797,7 +853,7 @@ namespace Googolplex.Unit8
 
             // Anu Avatar
             var anuInsideImg = CreateImage(screen, "AnuInsideAvatar", new Vector2(-240, -80), new Vector2(250, 650), GetSprite("SPR_Anu_Normal"));
-            if (anuInsideImg != null) { anuInsideImg.preserveAspect = true; anuInsideImg.SetNativeSize(); }
+            if (anuInsideImg != null) { anuInsideImg.preserveAspect = true; }
 
             // Prompts & Feedback
             CreatePromptCard(screen, "Prompt", "Step 1: Close the cubicle door first!", new Vector2(0, 380), new Vector2(1350, 90), 36);
@@ -862,7 +918,7 @@ namespace Googolplex.Unit8
             CreateImage(screen, "SoggyTowelFloorObject", new Vector2(500, -250), new Vector2(170, 110), GetSprite("SPR_Towel_SoggyFloor"));
             CreateImage(screen, "RunningWaterStreamObject", new Vector2(10, -5), new Vector2(90, 200), GetSprite("SPR_WaterStream"));
             var meeraPart3Img = CreateImage(screen, "MeeraAvatar", new Vector2(-520, -50), new Vector2(231, 656), GetSprite("SPR_Meera_Entering"));
-            if (meeraPart3Img != null) { meeraPart3Img.preserveAspect = true; meeraPart3Img.SetNativeSize(); }
+            if (meeraPart3Img != null) { meeraPart3Img.preserveAspect = true; }
 
             CreatePromptCard(screen, "Prompt", "Anu has left the washroom...", new Vector2(0, 380), new Vector2(1300, 90), 38);
             CreateFeedbackCard(screen, "Feedback", "", new Vector2(0, -265), new Vector2(1300, 80), 32, Color.yellow);
@@ -884,8 +940,8 @@ namespace Googolplex.Unit8
 
             CreateImage(screen, "SinkImage", new Vector2(0, -20), new Vector2(340, 380), GetSprite("SPR_Sink_Clean"));
             CreateImage(screen, "SoapDispenserImage", new Vector2(-160, 40), new Vector2(220, 320), GetSprite("SPR_Soap_Empty"));
-            var meeraPart4Img = CreateImage(screen, "MeeraAvatar", new Vector2(160, -50), new Vector2(249, 656), GetSprite("SPR_Meera_PumpSoap"));
-            if (meeraPart4Img != null) { meeraPart4Img.preserveAspect = true; meeraPart4Img.SetNativeSize(); }
+            var meeraPart4Img = CreateImage(screen, "MeeraAvatar", new Vector2(160, -50), new Vector2(580, 754), GetSprite("SPR_Meera_PumpSoap"));
+            if (meeraPart4Img != null) { meeraPart4Img.preserveAspect = true; }
 
             CreatePromptCard(screen, "Prompt", "The soap is finished. What should Meera do?", new Vector2(0, 380), new Vector2(1350, 90), 36);
             CreateFeedbackCard(screen, "Feedback", "", new Vector2(0, -185), new Vector2(1200, 80), 32, Color.yellow);
@@ -920,7 +976,7 @@ namespace Googolplex.Unit8
 
             // Meera Character Avatar
             var meeraEndImg = CreateImage(screen, "MeeraWavingAvatar", new Vector2(360, -90), new Vector2(250, 650), GetSprite("SPR_Meera_Happy"));
-            if (meeraEndImg != null) { meeraEndImg.preserveAspect = true; meeraEndImg.SetNativeSize(); }
+            if (meeraEndImg != null) { meeraEndImg.preserveAspect = true; }
 
             // Discussion Question Card
             GameObject questionCard = CreateCard(screen, "QuestionCard", new Vector2(-140, -50), new Vector2(960, 180), new Color(0.10f, 0.16f, 0.25f, 0.92f));
@@ -934,24 +990,7 @@ namespace Googolplex.Unit8
             // Part 1 Serialized Fields
             if (p1 != null)
             {
-                var c1 = p1.GetComponent<U8_Part1_DoorController_Masters_Activity>();
-                if (c1 != null)
-                {
-                    var so = new SerializedObject(c1);
-                    SetSerializedSprite(so, "doorClosedSprite", GetSprite("SPR_Cubicle_Closed"));
-                    SetSerializedSprite(so, "doorOpenSprite", GetSprite("SPR_Cubicle_Open"));
-                    SetSerializedSprite(so, "anuNormalSprite", GetSprite("SPR_Anu_Normal"));
-                    SetSerializedSprite(so, "anuKnockingSprite", GetSprite("SPR_Anu_Knocking"));
-                    SetSerializedSprite(so, "anuSheepishSprite", GetSprite("SPR_Anu_Sheepish"));
-                    so.ApplyModifiedProperties();
-
-                    Transform anuT = p1.transform.Find("AnuAvatar") ?? p1.transform.Find("Anu_Image");
-                    if (anuT != null)
-                    {
-                        var img = anuT.GetComponent<Image>();
-                        if (img != null) { img.preserveAspect = true; img.SetNativeSize(); }
-                    }
-                }
+                WirePart1Controller(p1);
             }
 
             // Part 2 Serialized Fields
@@ -974,7 +1013,7 @@ namespace Googolplex.Unit8
                     if (anuT != null)
                     {
                         var img = anuT.GetComponent<Image>();
-                        if (img != null) { img.preserveAspect = true; img.SetNativeSize(); }
+                        if (img != null) { img.preserveAspect = true; }
                     }
                 }
             }
@@ -1024,7 +1063,7 @@ namespace Googolplex.Unit8
                         var avatarProp = so.FindProperty("meeraAvatar");
                         var img = avatarT.GetComponent<Image>();
                         if (avatarProp != null) avatarProp.objectReferenceValue = img;
-                        if (img != null) { img.preserveAspect = true; img.SetNativeSize(); }
+                        if (img != null) { img.preserveAspect = true; }
                     }
 
                     so.ApplyModifiedProperties();
@@ -1057,7 +1096,7 @@ namespace Googolplex.Unit8
                         var avatarProp = so.FindProperty("meeraAvatar");
                         var img = avatarT.GetComponent<Image>();
                         if (avatarProp != null) avatarProp.objectReferenceValue = img;
-                        if (img != null) { img.preserveAspect = true; img.SetNativeSize(); }
+                        if (img != null) { img.preserveAspect = true; }
                     }
 
                     so.ApplyModifiedProperties();
@@ -1103,7 +1142,7 @@ namespace Googolplex.Unit8
                         var avatarProp = so.FindProperty("meeraWavingAvatar");
                         var img = avatarT.GetComponent<Image>();
                         if (avatarProp != null) avatarProp.objectReferenceValue = img;
-                        if (img != null) { img.preserveAspect = true; img.SetNativeSize(); }
+                        if (img != null) { img.preserveAspect = true; }
                     }
 
                     Transform btnRestartT = end.transform.Find("Btn_Restart") ?? end.transform.Find("BottomBar/Btn_Restart");
@@ -1116,6 +1155,130 @@ namespace Googolplex.Unit8
                     so.ApplyModifiedProperties();
                 }
             }
+        }
+
+        private static void WirePart1Controller(GameObject p1)
+        {
+            if (p1 == null) return;
+            var c1 = p1.GetComponent<U8_Part1_DoorController_Masters_Activity>();
+            if (c1 == null) return;
+
+            var so = new SerializedObject(c1);
+            SetSerializedSprite(so, "doorClosedSprite", GetSprite("SPR_Cubicle_Closed"));
+            SetSerializedSprite(so, "doorOpenSprite", GetSprite("SPR_Cubicle_Open"));
+            SetSerializedSprite(so, "anuNormalSprite", GetSprite("SPR_Anu_Walk_Idle") ?? GetSprite("SPR_Anu_Normal"));
+            SetSerializedSprite(so, "anuKnockingSprite", GetSprite("SPR_Anu_Knock_2") ?? GetSprite("SPR_Anu_Knocking"));
+            SetSerializedSprite(so, "anuSheepishSprite", GetSprite("SPR_Anu_Sheepish") ?? GetSprite("SPR_Anu_Normal"));
+
+            SetSerializedGameObject(so, "choiceContainer", p1.transform.Find("ChoiceContainer")?.gameObject);
+
+            Transform doorT = p1.transform.Find("WashroomDoor") ?? p1.transform.Find("DoorImage");
+            if (doorT != null)
+            {
+                var doorProp = so.FindProperty("doorImage");
+                if (doorProp != null) doorProp.objectReferenceValue = doorT.GetComponent<Image>();
+            }
+
+            Transform anuT = p1.transform.Find("AnuAvatar") ?? p1.transform.Find("Anu_Image");
+            if (anuT != null)
+            {
+                var img = anuT.GetComponent<Image>();
+                if (img != null)
+                {
+                    img.preserveAspect = true;
+                    var avatarProp = so.FindProperty("anuAvatar");
+                    if (avatarProp != null) avatarProp.objectReferenceValue = img;
+                }
+
+                var anim = anuT.GetComponent<Animator>();
+                if (anim == null) anim = anuT.gameObject.AddComponent<Animator>();
+                var ctrlAsset = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>("Assets/SeniorsActivityUnit8/Animations/Anu_AnimatorController.controller");
+                if (ctrlAsset != null) anim.runtimeAnimatorController = ctrlAsset;
+
+                var walkCtrl = anuT.GetComponent<U8_AnuWalkingController_Masters_Activity>();
+                if (walkCtrl == null) walkCtrl = anuT.gameObject.AddComponent<U8_AnuWalkingController_Masters_Activity>();
+
+                var walkSo = new SerializedObject(walkCtrl);
+                var walkSpritesProp = walkSo.FindProperty("walkSprites");
+                if (walkSpritesProp != null)
+                {
+                    walkSpritesProp.ClearArray();
+                    for (int i = 1; i <= 4; i++)
+                    {
+                        Sprite ws = GetSprite($"SPR_Anu_Walk_{i}");
+                        walkSpritesProp.InsertArrayElementAtIndex(i - 1);
+                        walkSpritesProp.GetArrayElementAtIndex(i - 1).objectReferenceValue = ws;
+                    }
+                }
+
+                SetSerializedSprite(walkSo, "idleSprite", GetSprite("SPR_Anu_Walk_Idle") ?? GetSprite("SPR_Anu_Normal"));
+
+                var knockSpritesProp = walkSo.FindProperty("knockSprites");
+                if (knockSpritesProp != null)
+                {
+                    knockSpritesProp.ClearArray();
+                    for (int i = 1; i <= 3; i++)
+                    {
+                        Sprite ks = GetSprite($"SPR_Anu_Knock_{i}");
+                        knockSpritesProp.InsertArrayElementAtIndex(i - 1);
+                        knockSpritesProp.GetArrayElementAtIndex(i - 1).objectReferenceValue = ks;
+                    }
+                }
+
+                SetSerializedSprite(walkSo, "sheepishSprite", GetSprite("SPR_Anu_Sheepish") ?? GetSprite("SPR_Anu_Normal"));
+
+                var ctrlProp = walkSo.FindProperty("animatorController");
+                if (ctrlProp != null) ctrlProp.objectReferenceValue = ctrlAsset;
+
+                var animProp = walkSo.FindProperty("animator");
+                if (animProp != null) animProp.objectReferenceValue = anim;
+
+                var rectProp = walkSo.FindProperty("rectTransform");
+                if (rectProp != null) rectProp.objectReferenceValue = anuT.GetComponent<RectTransform>();
+
+                var anuImgProp = walkSo.FindProperty("anuImage");
+                if (anuImgProp != null) anuImgProp.objectReferenceValue = img;
+
+                walkSo.ApplyModifiedProperties();
+
+                var walkProp = so.FindProperty("anuWalkingController");
+                if (walkProp != null) walkProp.objectReferenceValue = walkCtrl;
+            }
+
+            Transform promptT = p1.transform.Find("PromptCard/PromptText") ?? p1.transform.Find("PromptText");
+            if (promptT != null)
+            {
+                var promptProp = so.FindProperty("promptText");
+                if (promptProp != null) promptProp.objectReferenceValue = promptT.GetComponent<TextMeshProUGUI>();
+            }
+
+            Transform feedbackT = p1.transform.Find("FeedbackCard/FeedbackText") ?? p1.transform.Find("FeedbackText");
+            if (feedbackT != null)
+            {
+                var feedbackProp = so.FindProperty("feedbackText");
+                if (feedbackProp != null) feedbackProp.objectReferenceValue = feedbackT.GetComponent<TextMeshProUGUI>();
+            }
+
+            Transform btnKnockT = p1.transform.Find("ChoiceContainer/Btn_Knock") ?? p1.transform.Find("Btn_Knock");
+            if (btnKnockT != null)
+            {
+                var btnProp = so.FindProperty("btnKnockAndWait");
+                if (btnProp != null) btnProp.objectReferenceValue = btnKnockT.GetComponent<Button>();
+            }
+            Transform btnBangT = p1.transform.Find("ChoiceContainer/Btn_Bang") ?? p1.transform.Find("Btn_Bang");
+            if (btnBangT != null)
+            {
+                var btnProp = so.FindProperty("btnBangLoudly");
+                if (btnProp != null) btnProp.objectReferenceValue = btnBangT.GetComponent<Button>();
+            }
+            Transform btnPushT = p1.transform.Find("ChoiceContainer/Btn_Push") ?? p1.transform.Find("Btn_Push");
+            if (btnPushT != null)
+            {
+                var btnProp = so.FindProperty("btnPushOpen");
+                if (btnProp != null) btnProp.objectReferenceValue = btnPushT.GetComponent<Button>();
+            }
+
+            so.ApplyModifiedProperties();
         }
 
         private static void SetSerializedSprite(SerializedObject so, string propertyName, Sprite sprite)

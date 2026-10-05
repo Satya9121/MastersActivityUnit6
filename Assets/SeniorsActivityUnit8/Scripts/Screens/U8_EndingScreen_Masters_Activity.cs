@@ -76,7 +76,6 @@ namespace Googolplex.Unit8
             if (meeraWavingAvatar != null)
             {
                 meeraWavingAvatar.preserveAspect = true;
-                meeraWavingAvatar.SetNativeSize();
             }
 
             if (starEarnedSprite == null || starEmptySprite == null)
@@ -97,7 +96,6 @@ namespace Googolplex.Unit8
             if (meeraWavingAvatar != null)
             {
                 meeraWavingAvatar.preserveAspect = true;
-                meeraWavingAvatar.SetNativeSize();
             }
 
             if (titleText != null) titleText.text = "READY FOR THE NEXT PERSON!";

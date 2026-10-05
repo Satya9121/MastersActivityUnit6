@@ -1,5 +1,7 @@
 using System;
+using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Googolplex.Unit8
 {
@@ -37,12 +39,23 @@ namespace Googolplex.Unit8
         [SerializeField] private GameObject part4EmptySoapScreen;
         [SerializeField] private GameObject endingScreen;
 
+        [Header("Blink Transition Overlay")]
+        [SerializeField] private GameObject transitionOverlayObject;
+        [SerializeField] private Image transitionOverlayImage;
+        [SerializeField] private CanvasGroup transitionOverlayCanvasGroup;
+        [SerializeField] private float fadeDuration = 0.18f;
+        [SerializeField] private float darkHoldDuration = 0.04f;
+
+        private bool isTransitioning = false;
+        private Coroutine activeTransitionCoroutine;
+
         // Events
         public event Action<U8_GamePart> OnPartChanged;
         public event Action<int> OnStarEarned;
 
         public U8_GamePart CurrentPart => currentPart;
         public int StarCount => starCount;
+        public bool IsTransitioning => isTransitioning;
 
         private void Awake()
         {
@@ -54,12 +67,15 @@ namespace Googolplex.Unit8
             Instance = this;
 
             AutoFindScreens();
+            EnsureTransitionOverlay();
         }
 
         private void Start()
         {
             ResetUnitState();
-            ShowPart(U8_GamePart.Part1_Door);
+            // Start game directly on Part 1 without initial blink
+            ShowPartDirect(U8_GamePart.Part1_Door);
+
             if (U8_AudioManager_Masters_Activity.Instance != null)
             {
                 U8_AudioManager_Masters_Activity.Instance.PlayAmbience("AMB_Washroom");
@@ -100,7 +116,171 @@ namespace Googolplex.Unit8
             }
         }
 
+        public void EnsureTransitionOverlay()
+        {
+            if (transitionOverlayObject != null)
+            {
+                if (transitionOverlayCanvasGroup == null) transitionOverlayCanvasGroup = transitionOverlayObject.GetComponent<CanvasGroup>();
+                if (transitionOverlayImage == null) transitionOverlayImage = transitionOverlayObject.GetComponent<Image>();
+                return;
+            }
+
+            // Find Canvas
+            Canvas canvas = FindFirstObjectByType<Canvas>(FindObjectsInactive.Include);
+            if (canvas == null) return;
+
+            Transform existing = canvas.transform.Find("TransitionOverlay");
+            if (existing != null)
+            {
+                transitionOverlayObject = existing.gameObject;
+                transitionOverlayCanvasGroup = existing.GetComponent<CanvasGroup>();
+                transitionOverlayImage = existing.GetComponent<Image>();
+            }
+            else
+            {
+                GameObject go = new GameObject("TransitionOverlay", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(CanvasGroup));
+                go.transform.SetParent(canvas.transform, false);
+                go.transform.SetAsLastSibling();
+
+                RectTransform rt = go.GetComponent<RectTransform>();
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.sizeDelta = Vector2.zero;
+                rt.anchoredPosition = Vector2.zero;
+                rt.localScale = Vector3.one;
+
+                Image img = go.GetComponent<Image>();
+                img.color = Color.black;
+                img.raycastTarget = false;
+
+                CanvasGroup cg = go.GetComponent<CanvasGroup>();
+                cg.alpha = 0f;
+                cg.blocksRaycasts = false;
+                cg.interactable = false;
+
+                transitionOverlayObject = go;
+                transitionOverlayImage = img;
+                transitionOverlayCanvasGroup = cg;
+            }
+
+            if (transitionOverlayObject != null)
+            {
+                transitionOverlayObject.transform.SetAsLastSibling();
+                transitionOverlayObject.SetActive(false);
+            }
+        }
+
+        /// <summary>
+        /// Transitions smoothly to the specified screen using an eye-blink transition.
+        /// </summary>
         public void ShowPart(U8_GamePart part)
+        {
+            if (isTransitioning)
+            {
+                Debug.LogWarning($"[U8_GameManager] Ignoring transition to {part} because a transition is currently in progress.");
+                return;
+            }
+
+            if (activeTransitionCoroutine != null)
+            {
+                StopCoroutine(activeTransitionCoroutine);
+            }
+
+            activeTransitionCoroutine = StartCoroutine(BlinkTransitionRoutine(part));
+        }
+
+        /// <summary>
+        /// Performs a smooth screen blink/fade transition without changing the active screen,
+        /// executing the onPeakDarkness callback while the screen is fully dark.
+        /// </summary>
+        public void BlinkTransition(Action onPeakDarkness, float customFadeDur = 0.7f, float customHoldDur = 0.35f, Action onComplete = null)
+        {
+            if (activeTransitionCoroutine != null)
+            {
+                StopCoroutine(activeTransitionCoroutine);
+            }
+
+            activeTransitionCoroutine = StartCoroutine(CustomBlinkTransitionRoutine(onPeakDarkness, customFadeDur, customHoldDur, onComplete));
+        }
+
+        private IEnumerator CustomBlinkTransitionRoutine(Action onPeakDarkness, float customFadeDur, float customHoldDur, Action onComplete)
+        {
+            isTransitioning = true;
+            EnsureTransitionOverlay();
+
+            if (transitionOverlayObject != null)
+            {
+                transitionOverlayObject.transform.SetAsLastSibling();
+                transitionOverlayObject.SetActive(true);
+            }
+
+            if (transitionOverlayCanvasGroup != null)
+            {
+                transitionOverlayCanvasGroup.blocksRaycasts = true;
+            }
+            if (transitionOverlayImage != null)
+            {
+                transitionOverlayImage.raycastTarget = true;
+            }
+
+            // 1. FADE IN TO BLACK
+            float t = 0f;
+            float dur = Mathf.Max(0.08f, customFadeDur);
+            while (t < dur)
+            {
+                t += Time.deltaTime;
+                float alpha = Mathf.SmoothStep(0f, 1f, t / dur);
+                SetOverlayAlpha(alpha);
+                yield return null;
+            }
+            SetOverlayAlpha(1f);
+
+            // 2. HOLD FULL DARK MOMENTARILY & EXECUTE CALLBACK
+            if (customHoldDur > 0f)
+            {
+                yield return new WaitForSeconds(customHoldDur);
+            }
+
+            onPeakDarkness?.Invoke();
+
+            // Give 1 frame to settle UI
+            yield return null;
+
+            // 3. FADE OUT FROM BLACK
+            t = 0f;
+            while (t < dur)
+            {
+                t += Time.deltaTime;
+                float alpha = Mathf.SmoothStep(1f, 0f, t / dur);
+                SetOverlayAlpha(alpha);
+                yield return null;
+            }
+            SetOverlayAlpha(0f);
+
+            // 4. CLEANUP
+            if (transitionOverlayCanvasGroup != null)
+            {
+                transitionOverlayCanvasGroup.blocksRaycasts = false;
+            }
+            if (transitionOverlayImage != null)
+            {
+                transitionOverlayImage.raycastTarget = false;
+            }
+            if (transitionOverlayObject != null)
+            {
+                transitionOverlayObject.SetActive(false);
+            }
+
+            isTransitioning = false;
+            activeTransitionCoroutine = null;
+
+            onComplete?.Invoke();
+        }
+
+        /// <summary>
+        /// Directly switches active screen GameObject without transition overlay (used at startup / tests).
+        /// </summary>
+        public void ShowPartDirect(U8_GamePart part)
         {
             currentPart = part;
             AutoFindScreens();
@@ -114,6 +294,91 @@ namespace Googolplex.Unit8
 
             OnPartChanged?.Invoke(part);
             Debug.Log($"[U8_GameManager] Switched active screen to: {part}");
+        }
+
+        private IEnumerator BlinkTransitionRoutine(U8_GamePart targetPart)
+        {
+            isTransitioning = true;
+            EnsureTransitionOverlay();
+
+            if (transitionOverlayObject != null)
+            {
+                transitionOverlayObject.transform.SetAsLastSibling();
+                transitionOverlayObject.SetActive(true);
+            }
+
+            if (transitionOverlayCanvasGroup != null)
+            {
+                transitionOverlayCanvasGroup.blocksRaycasts = true;
+            }
+            if (transitionOverlayImage != null)
+            {
+                transitionOverlayImage.raycastTarget = true;
+            }
+
+            // 1. FADE IN TO BLACK (0.15 - 0.20s)
+            float t = 0f;
+            float dur = Mathf.Max(0.08f, fadeDuration);
+            while (t < dur)
+            {
+                t += Time.deltaTime;
+                float alpha = Mathf.SmoothStep(0f, 1f, t / dur);
+                SetOverlayAlpha(alpha);
+                yield return null;
+            }
+            SetOverlayAlpha(1f);
+
+            // 2. HOLD FULL DARK MOMENTARILY & SWITCH SCREEN
+            if (darkHoldDuration > 0f)
+            {
+                yield return new WaitForSeconds(darkHoldDuration);
+            }
+
+            // Strictly switch screen while completely covered by black overlay
+            ShowPartDirect(targetPart);
+
+            // Give new screen 1 frame to initialize Awake / OnEnable while hidden
+            yield return null;
+
+            // 3. FADE OUT FROM BLACK (0.15 - 0.20s)
+            t = 0f;
+            while (t < dur)
+            {
+                t += Time.deltaTime;
+                float alpha = Mathf.SmoothStep(1f, 0f, t / dur);
+                SetOverlayAlpha(alpha);
+                yield return null;
+            }
+            SetOverlayAlpha(0f);
+
+            // 4. CLEANUP
+            if (transitionOverlayCanvasGroup != null)
+            {
+                transitionOverlayCanvasGroup.blocksRaycasts = false;
+            }
+            if (transitionOverlayImage != null)
+            {
+                transitionOverlayImage.raycastTarget = false;
+            }
+            if (transitionOverlayObject != null)
+            {
+                transitionOverlayObject.SetActive(false);
+            }
+
+            isTransitioning = false;
+            activeTransitionCoroutine = null;
+        }
+
+        private void SetOverlayAlpha(float alpha)
+        {
+            if (transitionOverlayCanvasGroup != null)
+            {
+                transitionOverlayCanvasGroup.alpha = alpha;
+            }
+            else if (transitionOverlayImage != null)
+            {
+                transitionOverlayImage.color = new Color(0f, 0f, 0f, alpha);
+            }
         }
 
         public void AwardStar()

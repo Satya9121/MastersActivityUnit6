@@ -48,13 +48,11 @@ namespace Googolplex.Unit8
         public void SetupPlayer()
         {
             if (videoClip == null)
-{
-#if UNITY_EDITOR
-    videoClip = UnityEditor.AssetDatabase.LoadAssetAtPath<VideoClip>(
-        "Assets/SeniorsActivityUnit8/Videos/Unit8.mp4"
-    );
-#endif
-}
+            {
+                #if UNITY_EDITOR
+                videoClip = UnityEditor.AssetDatabase.LoadAssetAtPath<VideoClip>("Assets/SeniorsActivityUnit8/Art/Hands_washing_with_soap_bubbles_20260921100650.mp4");
+                #endif
+            }
 
             if (renderTexture == null)
             {

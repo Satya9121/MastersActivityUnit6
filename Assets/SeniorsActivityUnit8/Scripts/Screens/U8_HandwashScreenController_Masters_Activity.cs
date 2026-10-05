@@ -50,6 +50,9 @@ namespace Googolplex.Unit8
 
         private void OnEnable()
         {
+            CanvasGroup cg = GetComponent<CanvasGroup>();
+            if (cg == null) cg = gameObject.AddComponent<CanvasGroup>();
+            cg.alpha = 1f;
             StartHandwashingSession();
         }
 
