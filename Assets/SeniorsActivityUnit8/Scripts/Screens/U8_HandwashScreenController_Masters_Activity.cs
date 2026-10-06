@@ -86,11 +86,10 @@ namespace Googolplex.Unit8
             {
                 Transform t = transform.Find("HandsImage") ?? transform.Find("HandsFallback");
                 if (t != null) handsFallbackImage = t.GetComponent<Image>();
-                if (handsFallbackImage == null) handsFallbackImage = GetComponentInChildren<Image>(true);
             }
             if (handsVideoImage == null)
             {
-                Transform t = transform.Find("HandsImage/HandsVideo") ?? transform.Find("HandsVideo");
+                Transform t = transform.Find("HandsVideo") ?? transform.Find("HandsImage/HandsVideo");
                 if (t != null) handsVideoImage = t.GetComponent<RawImage>();
                 if (handsVideoImage == null) handsVideoImage = GetComponentInChildren<RawImage>(true);
             }

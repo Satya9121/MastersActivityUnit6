@@ -13485,7 +13485,7 @@ MonoBehaviour:
     optionA_Clip: {fileID: 8300000, guid: 7b89e419cab5430db83c664b1d78248e, type: 3}
     optionA_Face: 0
     optionA_Avatar: {fileID: 0}
-    optionA_RaviPose: {fileID: 0}
+    optionA_RaviPose: {fileID: -2091325867, guid: 600da5f794885c34bbc14a02dafeb5ba, type: 3}
     optionB_Badge: 
     optionB_Text: Wave both arms and shout across the room
     optionB_Outcome: Ravi hurries over while other tables look over.
@@ -13506,7 +13506,7 @@ MonoBehaviour:
     optionA_Clip: {fileID: 8300000, guid: 048b98a41c53ae14fb91a88768f81959, type: 3}
     optionA_Face: 0
     optionA_Avatar: {fileID: -903311522, guid: ac77abff6ceca544fac6af7927297037, type: 3}
-    optionA_RaviPose: {fileID: 0}
+    optionA_RaviPose: {fileID: -1895282525, guid: 600da5f794885c34bbc14a02dafeb5ba, type: 3}
     optionB_Badge: 
     optionB_Text: '"This is WRONG!" (loudly)'
     optionB_Outcome: Ravi apologises stiffly and fixes it quietly.
@@ -13548,7 +13548,7 @@ MonoBehaviour:
     optionA_Clip: {fileID: 8300000, guid: 651fbec96114c194fbe912facfe1ffd0, type: 3}
     optionA_Face: 0
     optionA_Avatar: {fileID: 0}
-    optionA_RaviPose: {fileID: 0}
+    optionA_RaviPose: {fileID: -1802308973, guid: 600da5f794885c34bbc14a02dafeb5ba, type: 3}
     optionB_Badge: 
     optionB_Text: '"I dropped my fork!" (shouted)'
     optionB_Outcome: Ravi brings one while the nearby diners look up.

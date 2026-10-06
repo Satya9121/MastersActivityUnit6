@@ -1526,7 +1526,9 @@ namespace Googolplex.Unit6
                 politeAnswersCount++;
                 if (outcomeText) outcomeText.text = !string.IsNullOrEmpty(m.optionA_Outcome) ? m.optionA_Outcome : "Ravi smiles warmly.";
                 
-                Sprite poseA = m.optionA_RaviPose != null ? m.optionA_RaviPose : (raviGreeting != null ? raviGreeting : m.fullBodyPoseSprite);
+                Sprite poseA = (currentMomentIndex == 1 || currentMomentIndex == 2 || currentMomentIndex == 4)
+                    ? (m.fullBodyPoseSprite != null ? m.fullBodyPoseSprite : (raviGreeting != null ? raviGreeting : m.fullBodyPoseSprite))
+                    : (m.optionA_RaviPose != null ? m.optionA_RaviPose : (raviGreeting != null ? raviGreeting : m.fullBodyPoseSprite));
                 SetWaiterPose(poseA, m.optionA_Face);
 
                 bool isAskingMoment = (currentMomentIndex == 1 || currentMomentIndex == 2 || currentMomentIndex == 4);
@@ -1561,6 +1563,11 @@ namespace Googolplex.Unit6
                     {
                         anuCharacterAvatar.sprite = calmTable;
                     }
+                    Sprite comingPose = (raviTakingOrder != null) ? raviTakingOrder : (m.optionA_RaviPose ?? raviGreeting);
+                    if (comingPose != null)
+                    {
+                        SetWaiterPose(comingPose, U6_WaiterFaceState.WarmSmile);
+                    }
                     PlayScreenAudio(null, "VO_U6_WAIT_2");
                 }
                 else if (currentMomentIndex == 2) 
@@ -1573,6 +1580,11 @@ namespace Googolplex.Unit6
                     {
                         anuCharacterAvatar.sprite = calmTable;
                     }
+                    Sprite apologyPose = (raviApology != null) ? raviApology : m.optionA_RaviPose;
+                    if (apologyPose != null)
+                    {
+                        SetWaiterPose(apologyPose, U6_WaiterFaceState.WarmSmile);
+                    }
                     PlayScreenAudio(voWaiterApologizeClip, voWaiterApologize);
                 }
                 else if (currentMomentIndex == 4)
@@ -1582,6 +1594,11 @@ namespace Googolplex.Unit6
                     if (anuCharacterAvatar != null && calmTable != null)
                     {
                         anuCharacterAvatar.sprite = calmTable;
+                    }
+                    Sprite cutleryPose = (raviCutlery != null) ? raviCutlery : m.optionA_RaviPose;
+                    if (cutleryPose != null)
+                    {
+                        SetWaiterPose(cutleryPose, U6_WaiterFaceState.WarmSmile);
                     }
                 }
             }

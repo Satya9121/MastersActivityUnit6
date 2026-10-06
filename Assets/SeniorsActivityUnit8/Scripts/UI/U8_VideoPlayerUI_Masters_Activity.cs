@@ -50,16 +50,16 @@ namespace Googolplex.Unit8
             if (videoClip == null)
             {
                 #if UNITY_EDITOR
-                videoClip = UnityEditor.AssetDatabase.LoadAssetAtPath<VideoClip>("Assets/SeniorsActivityUnit8/Art/Hands_washing_with_soap_bubbles_20260921100650.mp4");
+                videoClip = UnityEditor.AssetDatabase.LoadAssetAtPath<VideoClip>("Assets/SeniorsActivityUnit8/Art/more sprites/Child_washing_hands_in_sink_20261001163100.mp4");
                 #endif
             }
 
             if (renderTexture == null)
             {
-                int width = videoClip != null ? (int)videoClip.width : 480;
-                int height = videoClip != null ? (int)videoClip.height : 270;
-                if (width <= 0) width = 480;
-                if (height <= 0) height = 270;
+                int width = videoClip != null ? (int)videoClip.width : 1920;
+                int height = videoClip != null ? (int)videoClip.height : 1080;
+                if (width <= 0) width = 1920;
+                if (height <= 0) height = 1080;
 
                 renderTexture = new RenderTexture(width, height, 0, RenderTextureFormat.ARGB32);
                 renderTexture.Create();
@@ -71,7 +71,20 @@ namespace Googolplex.Unit8
                 videoPlayer.isLooping = loop;
                 videoPlayer.renderMode = VideoRenderMode.RenderTexture;
                 videoPlayer.targetTexture = renderTexture;
-                videoPlayer.clip = videoClip;
+                if (videoClip != null)
+                {
+                    videoPlayer.source = VideoSource.VideoClip;
+                    videoPlayer.clip = videoClip;
+                }
+                else
+                {
+                    string fullPath = System.IO.Path.Combine(Application.dataPath, "SeniorsActivityUnit8/Art/more sprites/Child_washing_hands_in_sink_20261001163100.mp4");
+                    if (System.IO.File.Exists(fullPath))
+                    {
+                        videoPlayer.source = VideoSource.Url;
+                        videoPlayer.url = fullPath;
+                    }
+                }
                 videoPlayer.audioOutputMode = VideoAudioOutputMode.None; // Game audio handled by U8_AudioManager
             }
 

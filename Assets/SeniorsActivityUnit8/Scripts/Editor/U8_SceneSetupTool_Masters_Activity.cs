@@ -816,8 +816,8 @@ namespace Googolplex.Unit8
             // Pinned Top Header Bar
             CreateHeader(screen, "UNIT 8: HANDWASHING", "20-Second Song & Scrub");
 
-            // Hands Video with U8_VideoPlayerUI
-            RawImage handsVideo = CreateRawImage(screen, "HandsVideo", new Vector2(0, 0), new Vector2(580, 480));
+            // Fullscreen Hands Video with U8_VideoPlayerUI (plays Child_washing_hands_in_sink_20261001163100.mp4)
+            RawImage handsVideo = CreateRawImage(screen, "HandsVideo", Vector2.zero, Vector2.zero, true);
             var videoPlayer = handsVideo.GetComponent<U8_VideoPlayerUI_Masters_Activity>();
             if (videoPlayer == null) videoPlayer = handsVideo.gameObject.AddComponent<U8_VideoPlayerUI_Masters_Activity>();
             videoPlayer.SetupPlayer();
@@ -1214,7 +1214,7 @@ namespace Googolplex.Unit8
             return img;
         }
 
-        private static RawImage CreateRawImage(GameObject parent, string name, Vector2 pos, Vector2 size)
+        private static RawImage CreateRawImage(GameObject parent, string name, Vector2 pos, Vector2 size, bool stretch = false)
         {
             Transform existing = parent.transform.Find(name);
             GameObject go = existing != null ? existing.gameObject : new GameObject(name, typeof(RectTransform), typeof(RawImage));
@@ -1222,8 +1222,18 @@ namespace Googolplex.Unit8
 
             RectTransform rt = go.GetComponent<RectTransform>();
             if (rt == null) rt = go.AddComponent<RectTransform>();
-            rt.anchoredPosition = pos;
-            rt.sizeDelta = size;
+            if (stretch)
+            {
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
+            }
+            else
+            {
+                rt.anchoredPosition = pos;
+                rt.sizeDelta = size;
+            }
 
             RawImage rawImg = go.GetComponent<RawImage>();
             if (rawImg == null) rawImg = go.AddComponent<RawImage>();
