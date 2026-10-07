@@ -1301,8 +1301,20 @@ MonoBehaviour:
   bubbleContainer: {fileID: 0}
   bubbleSprites: []
   germBlobs: []
+<<<<<<< Updated upstream
   songDurationSeconds: 20
   scrubsPerGerm: 4
+=======
+  voNowWashHands: {fileID: 0}
+  voKeepGoing: {fileID: 0}
+  voAllCleanOneStar: {fileID: 0}
+  musHandwashSong: {fileID: 0}
+  sfxGermOff: {fileID: 0}
+  sfxScrub: {fileID: 0}
+  sfxBubble: {fileID: 0}
+  sfxSparkle: {fileID: 0}
+  defaultDurationSeconds: 10
+>>>>>>> Stashed changes
 --- !u!1 &144287841
 GameObject:
   m_ObjectHideFlags: 0
@@ -5364,6 +5376,7 @@ MonoBehaviour:
   - id: Would the next person be happy
     clip: {fileID: 8300000, guid: 8b1dc06e9516a5f40b0853916a73858e, type: 3}
     volume: 1
+<<<<<<< Updated upstream
   - id: VO_U8_16
     clip: {fileID: 8300000, guid: 8b1dc06e9516a5f40b0853916a73858e, type: 3}
     volume: 1
@@ -5400,6 +5413,8 @@ MonoBehaviour:
   - id: SFX_SliderZone
     clip: {fileID: 8300000, guid: 52ac9d446459da24face1caeb7085d54, type: 3}
     volume: 1
+=======
+>>>>>>> Stashed changes
 --- !u!114 &662346521
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5426,6 +5441,16 @@ MonoBehaviour:
   part3AfterYouScreen: {fileID: 0}
   part4EmptySoapScreen: {fileID: 0}
   endingScreen: {fileID: 0}
+<<<<<<< Updated upstream
+=======
+  transitionOverlayObject: {fileID: 0}
+  transitionOverlayImage: {fileID: 0}
+  transitionOverlayCanvasGroup: {fileID: 0}
+  fadeDuration: 0.18
+  darkHoldDuration: 0.04
+  ambWashroom: {fileID: 0}
+  sfxStar: {fileID: 0}
+>>>>>>> Stashed changes
 --- !u!4 &662346522
 Transform:
   m_ObjectHideFlags: 0
@@ -8031,6 +8056,12 @@ MonoBehaviour:
   runningWaterStreamObject: {fileID: 345854339}
   splashedSinkOverlay: {fileID: 6046567}
   cleanSinkSparkleOverlay: {fileID: 883040881}
+  voHereComesMeera: {fileID: 0}
+  voOhDearShallWeTryAgain: {fileID: 0}
+  voMeeraGasp: {fileID: 0}
+  sfxSlip: {fileID: 0}
+  sfxTapOff: {fileID: 0}
+  sfxSparkle: {fileID: 0}
 --- !u!1 &1044700620
 GameObject:
   m_ObjectHideFlags: 0
@@ -10930,6 +10961,37 @@ MonoBehaviour:
   anuNormalSprite: {fileID: -808599169, guid: 67f50dd372cc9dd4b82a8e1052c2b30c, type: 3}
   anuWashingSprite: {fileID: 1430158104, guid: 67f50dd372cc9dd4b82a8e1052c2b30c, type: 3}
   anuWipingSprite: {fileID: 1639247298, guid: 67f50dd372cc9dd4b82a8e1052c2b30c, type: 3}
+<<<<<<< Updated upstream
+=======
+  anuWalkSprites:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  wipingSinkVideoClip: {fileID: 32900000, guid: e2921b578acb35a419984784e09d6213, type: 3}
+  wipeVideoOverlay: {fileID: 0}
+  wipeVideoRawImage: {fileID: 0}
+  wipeVideoPlayer: {fileID: 0}
+  wipeVideoAspectFitter: {fileID: 0}
+  voNowWhatNext: {fileID: 0}
+  voDoNotForgetToFlush: {fileID: 0}
+  voNowWashHands: {fileID: 0}
+  voTurnTapOff: {fileID: 0}
+  voTowelInBin: {fileID: 0}
+  voWipeSink: {fileID: 0}
+  sfxBoltClick: {fileID: 0}
+  sfxFlush: {fileID: 0}
+  sfxTapOn: {fileID: 0}
+  sfxTapOff: {fileID: 0}
+  sfxTowelPull: {fileID: 0}
+  sfxBinDrop: {fileID: 0}
+  sfxWipe: {fileID: 0}
+  sfxSparkle: {fileID: 0}
+>>>>>>> Stashed changes
 --- !u!1 &1675761307
 GameObject:
   m_ObjectHideFlags: 0
@@ -10987,8 +11049,13 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
+<<<<<<< Updated upstream
   m_text: '<color=#FFD700><b>UNIT 8: WASHROOM ETIQUETTE</b></color>   <color=#7799BB>|</color>  
     <color=#FFFFFF><b>Part 1: The Door</b></color>'
+=======
+  m_text: '<color=#FFD700><b>WASHROOM ETIQUETTE</b></color> - <color=#FFFFFF><b>Part
+    1: The Door</b></color>'
+>>>>>>> Stashed changes
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -12528,6 +12595,12 @@ MonoBehaviour:
   meeraWavingAvatar: {fileID: 1796679233}
   confettiEffectObject: {fileID: 0}
   btnRestartActivity: {fileID: 2103258686}
+  voThreeStarsReady: {fileID: 0}
+  voWouldNextPersonBeHappy: {fileID: 0}
+  musWin: {fileID: 0}
+  sfxConfetti: {fileID: 0}
+  sfxClap: {fileID: 0}
+  sfxStar: {fileID: 0}
 --- !u!1 &1873079793
 GameObject:
   m_ObjectHideFlags: 0
@@ -12673,6 +12746,153 @@ MonoBehaviour:
   soapEmptySprite: {fileID: 1724252495, guid: 2bb5f6a46e2282745a29bf10718a52c5, type: 3}
   soapFullRefilledSprite: {fileID: -250570729, guid: 2bb5f6a46e2282745a29bf10718a52c5, type: 3}
   otherChildrenUsingSoapOverlay: {fileID: 0}
+<<<<<<< Updated upstream
+=======
+  voSoapFinished: {fileID: 0}
+  voMeeraMaamSoapFinished: {fileID: 0}
+  sfxSoapPump: {fileID: 0}
+  sfxSoapEmpty: {fileID: 0}
+  sfxSparkle: {fileID: 0}
+  meeraWalkSprites:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+--- !u!1 &2010973511
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2010973512}
+  - component: {fileID: 2010973514}
+  - component: {fileID: 2010973513}
+  m_Layer: 0
+  m_Name: Label
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &2010973512
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2010973511}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1128252815}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: -24, y: -12}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &2010973513
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2010973511}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_text: Finish Unit
+  m_isRightToLeft: 0
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontSharedMaterials: []
+  m_fontMaterial: {fileID: 0}
+  m_fontMaterials: []
+  m_fontColor32:
+    serializedVersion: 2
+    rgba: 4294967295
+  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+  m_enableVertexGradient: 0
+  m_colorMode: 3
+  m_fontColorGradient:
+    topLeft: {r: 1, g: 1, b: 1, a: 1}
+    topRight: {r: 1, g: 1, b: 1, a: 1}
+    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
+    bottomRight: {r: 1, g: 1, b: 1, a: 1}
+  m_fontColorGradientPreset: {fileID: 0}
+  m_spriteAsset: {fileID: 0}
+  m_tintAllSprites: 0
+  m_StyleSheet: {fileID: 0}
+  m_TextStyleHashCode: -1183493901
+  m_overrideHtmlColors: 0
+  m_faceColor:
+    serializedVersion: 2
+    rgba: 4294967295
+  m_fontSize: 33
+  m_fontSizeBase: 30
+  m_fontWeight: 400
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 16.5
+  m_fontSizeMax: 33
+  m_fontStyle: 1
+  m_HorizontalAlignment: 2
+  m_VerticalAlignment: 512
+  m_textAlignment: 65535
+  m_characterSpacing: 0
+  m_wordSpacing: 0
+  m_lineSpacing: 0
+  m_lineSpacingMax: 0
+  m_paragraphSpacing: 0
+  m_charWidthMaxAdj: 0
+  m_enableWordWrapping: 1
+  m_wordWrappingRatios: 0.4
+  m_overflowMode: 0
+  m_linkedTextComponent: {fileID: 0}
+  parentLinkedComponent: {fileID: 0}
+  m_enableKerning: 1
+  m_enableExtraPadding: 0
+  checkPaddingRequired: 0
+  m_isRichText: 1
+  m_parseCtrlCharacters: 1
+  m_isOrthographic: 1
+  m_isCullingEnabled: 0
+  m_horizontalMapping: 0
+  m_verticalMapping: 0
+  m_uvLineOffset: 0
+  m_geometrySortingOrder: 0
+  m_IsTextObjectScaleStatic: 0
+  m_VertexBufferAutoSizeReduction: 0
+  m_useMaxVisibleDescender: 1
+  m_pageToDisplay: 1
+  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_isUsingLegacyAnimationComponent: 0
+  m_isVolumetricText: 0
+  m_hasFontAssetChanged: 0
+  m_baseMaterial: {fileID: 0}
+  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!222 &2010973514
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2010973511}
+  m_CullTransparentMesh: 1
+>>>>>>> Stashed changes
 --- !u!1 &2075218989
 GameObject:
   m_ObjectHideFlags: 0
@@ -12689,7 +12909,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &2075218990
 RectTransform:
   m_ObjectHideFlags: 0
@@ -12741,6 +12961,35 @@ MonoBehaviour:
   btnKnockAndWait: {fileID: 1323853541}
   btnBangLoudly: {fileID: 837355552}
   btnPushOpen: {fileID: 266631951}
+<<<<<<< Updated upstream
+=======
+  doorClosedSprite: {fileID: 4744275, guid: 2bb5f6a46e2282745a29bf10718a52c5, type: 3}
+  doorOpenSprite: {fileID: 240691849, guid: 2bb5f6a46e2282745a29bf10718a52c5, type: 3}
+  anuNormalSprite: {fileID: 21300000, guid: 432ae0b9d077526e8e8f93c256ae478f, type: 3}
+  anuKnockingSprite: {fileID: 21300000, guid: 0efe64b967915a11961e28f4325d2f85, type: 3}
+  anuSheepishSprite: {fileID: 21300000, guid: 432ae0b9d077526e8e8f93c256ae478f, type: 3}
+  meeraAvatar: {fileID: 0}
+  meeraWalkSprites:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  meeraEnteringSprite: {fileID: 0}
+  voAnuNeedsWashroom: {fileID: 0}
+  voDoorClosed: {fileID: 0}
+  voKnockAndWait: {fileID: 0}
+  voJustAMinute: {fileID: 0}
+  voSorry: {fileID: 0}
+  sfxKnock: {fileID: 0}
+  sfxBangDoor: {fileID: 0}
+  sfxBoltRattle: {fileID: 0}
+  sfxBoltClick: {fileID: 0}
+  anuWalkingController: {fileID: 403308954}
+>>>>>>> Stashed changes
 --- !u!1 &2085314025
 GameObject:
   m_ObjectHideFlags: 0
