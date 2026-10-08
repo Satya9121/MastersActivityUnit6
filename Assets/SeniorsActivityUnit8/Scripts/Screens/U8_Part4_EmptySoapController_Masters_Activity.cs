@@ -135,10 +135,6 @@ namespace Googolplex.Unit8
             }
             if (meeraAvatar != null)
             {
-                meeraAvatar.preserveAspect = true;
-                meeraAvatar.rectTransform.localScale = Vector3.one;
-                meeraAvatar.rectTransform.localRotation = Quaternion.identity;
-                meeraAvatar.rectTransform.sizeDelta = new Vector2(580f, 754f);
                 if (meeraPumpingSoapSprite != null && meeraAvatar.sprite == null) meeraAvatar.sprite = meeraPumpingSoapSprite;
             }
             if (soapDispenserImage == null)
@@ -164,11 +160,6 @@ namespace Googolplex.Unit8
 
             if (meeraAvatar != null)
             {
-                meeraAvatar.preserveAspect = true;
-                meeraAvatar.rectTransform.localScale = Vector3.one;
-                meeraAvatar.rectTransform.localRotation = Quaternion.identity;
-                meeraAvatar.rectTransform.sizeDelta = new Vector2(580f, 754f);
-                meeraAvatar.rectTransform.anchoredPosition = new Vector2(160f, -50f);
                 if (meeraPumpingSoapSprite != null) meeraAvatar.sprite = meeraPumpingSoapSprite;
             }
             if (promptText != null) promptText.text = "Meera presses the soap dispenser...";
@@ -253,15 +244,10 @@ namespace Googolplex.Unit8
                 soapDispenserImage.gameObject.SetActive(true);
             }
 
-            // 2. Meera in happy pose in correct position & standard size
+            // 2. Meera in happy pose
             if (meeraAvatar != null)
             {
                 if (meeraHappySprite != null) meeraAvatar.sprite = meeraHappySprite;
-                meeraAvatar.preserveAspect = true;
-                meeraAvatar.rectTransform.localScale = Vector3.one;
-                meeraAvatar.rectTransform.localRotation = Quaternion.identity;
-                meeraAvatar.rectTransform.sizeDelta = new Vector2(580f, 754f);
-                meeraAvatar.rectTransform.anchoredPosition = new Vector2(160f, -50f);
                 meeraAvatar.gameObject.SetActive(true);
             }
 
@@ -312,7 +298,6 @@ namespace Googolplex.Unit8
             if (meeraAvatar != null && meeraShruggingSprite != null)
             {
                 meeraAvatar.sprite = meeraShruggingSprite;
-                meeraAvatar.preserveAspect = true;
             }
             if (feedbackText != null) feedbackText.text = "Meera shrugs and walks away...";
 

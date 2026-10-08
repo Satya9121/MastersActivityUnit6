@@ -1,6 +1,7 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 using UnityEngine.Video;
 
@@ -46,7 +47,8 @@ namespace Googolplex.Unit8
 
         [Header("Step 7 Wiping Sink Video")]
         [SerializeField] private VideoClip wipingSinkVideoClip;
-        [SerializeField] private GameObject wipeVideoOverlay;
+        [FormerlySerializedAs("wipeVideoOverlay")]
+        [SerializeField] private GameObject wipeVideoContainer;
         [SerializeField] private RawImage wipeVideoRawImage;
         [SerializeField] private VideoPlayer wipeVideoPlayer;
         [SerializeField] private AspectRatioFitter wipeVideoAspectFitter;
@@ -82,6 +84,7 @@ namespace Googolplex.Unit8
             AutoWireAudioClips();
             CacheEditorPositions();
             RegisterListeners();
+            DeactivateAllStepButtons();
         }
 
         public void AutoWireAudioClips()
@@ -152,7 +155,7 @@ namespace Googolplex.Unit8
             if (anuInsideAvatar != null)
             {
                 anuEditorPosition = anuInsideAvatar.rectTransform.anchoredPosition;
-                if (anuEditorPosition.x < -400f)
+                if (anuEditorPosition.x < -400f || anuEditorPosition.x > 0f)
                 {
                     anuEditorPosition = new Vector2(-240f, -80f);
                 }
@@ -176,27 +179,43 @@ namespace Googolplex.Unit8
             RegisterListeners();
             CacheEditorPositions();
 
-            // If returning from Handwash Screen, continue from Step 5
+            // If returning from Handwash Screen, continue from Step 5 or Step 6
             if (U8_GameManager_Masters_Activity.Instance != null && U8_GameManager_Masters_Activity.Instance.isHandsWashed)
             {
-                currentStepIndex = 5;
-                if (anuInsideAvatar != null)
+                if (U8_GameManager_Masters_Activity.Instance.isTapTurnedOff)
                 {
-                    anuInsideAvatar.gameObject.SetActive(true);
-                    anuInsideAvatar.rectTransform.anchoredPosition = anuEditorPosition;
-                    anuInsideAvatar.rectTransform.localScale = Vector3.one;
-                    anuInsideAvatar.rectTransform.sizeDelta = new Vector2(250f, 650f);
-                    if (anuNormalSprite != null) anuInsideAvatar.sprite = anuNormalSprite;
-                }
-                if (tapWaterStream != null) tapWaterStream.gameObject.SetActive(true);
-                if (sinkImage != null && sinkSplashedSprite != null) sinkImage.sprite = sinkSplashedSprite;
+                    currentStepIndex = 6;
+                    if (anuInsideAvatar != null)
+                    {
+                        anuInsideAvatar.gameObject.SetActive(true);
+                        anuInsideAvatar.rectTransform.anchoredPosition = new Vector2(378f, -80f);
+                        if (anuNormalSprite != null) anuInsideAvatar.sprite = anuNormalSprite;
+                    }
+                    if (tapWaterStream != null) tapWaterStream.gameObject.SetActive(false);
+                    if (sinkImage != null && sinkCleanSprite != null) sinkImage.sprite = sinkCleanSprite;
 
-                UpdateStepVisuals();
-                if (feedbackText != null) feedbackText.text = "Hands clean! Now let's turn off the tap.";
-                if (U8_AudioManager_Masters_Activity.Instance != null)
+                    UpdateStepVisuals();
+                    if (feedbackText != null) feedbackText.text = "Water saved! Now dry hands and throw the towel in the bin.";
+                }
+                else
                 {
-                    U8_AudioManager_Masters_Activity.Instance.PlayAmbience("SFX_TapOn", true);
-                    U8_AudioManager_Masters_Activity.Instance.PlayVO("VO_U8_09"); // "Turn the tap off."
+                    currentStepIndex = 5;
+                    if (anuInsideAvatar != null)
+                    {
+                        anuInsideAvatar.gameObject.SetActive(true);
+                        anuInsideAvatar.rectTransform.anchoredPosition = anuEditorPosition;
+                        if (anuNormalSprite != null) anuInsideAvatar.sprite = anuNormalSprite;
+                    }
+                    if (tapWaterStream != null) tapWaterStream.gameObject.SetActive(true);
+                    if (sinkImage != null && sinkSplashedSprite != null) sinkImage.sprite = sinkSplashedSprite;
+
+                    UpdateStepVisuals();
+                    if (feedbackText != null) feedbackText.text = "Hands clean! Now let's turn off the tap.";
+                    if (U8_AudioManager_Masters_Activity.Instance != null)
+                    {
+                        U8_AudioManager_Masters_Activity.Instance.PlayAmbience("SFX_TapOn", true);
+                        U8_AudioManager_Masters_Activity.Instance.PlayVO("VO_U8_09"); // "Turn the tap off."
+                    }
                 }
             }
             else
@@ -242,14 +261,27 @@ namespace Googolplex.Unit8
 
             btnProceedToPart3 = FindButtonByKeywords("Proceed", "Next", "Leave", "Meera");
 
-            // Strictly find and assign buttons 1 through 7 dynamically
-            btnCloseCubicle = FindStepButton(1, "CloseDoor", "CloseCubicle", "Close", "Door");
-            btnFlush = FindStepButton(2, "Flush", "Toilet");
-            btnAnuExitCubicle = FindStepButton(3, "StepOut", "ComeOut", "Exit");
-            btnWashHands = FindStepButton(4, "WashHands", "Wash", "Soap");
-            btnTurnTapOff = FindStepButton(5, "TurnTapOff", "TapOff", "TurnOff", "Tap");
-            btnPaperTowel = FindStepButton(6, "PaperTowel", "Towel", "Bin");
-            btnWipeSink = FindStepButton(7, "WipeSink", "Wipe", "Dry");
+            // Strictly find and assign buttons 1 through 7 dynamically (preserving existing assignments if search returns null)
+            var f1 = FindStepButton(1, "CloseDoor", "CloseCubicle", "Close", "Door");
+            if (f1 != null) btnCloseCubicle = f1;
+
+            var f2 = FindStepButton(2, "Flush", "Toilet");
+            if (f2 != null) btnFlush = f2;
+
+            var f3 = FindStepButton(3, "StepOut", "ComeOut", "Exit");
+            if (f3 != null) btnAnuExitCubicle = f3;
+
+            var f4 = FindStepButton(4, "WashHands", "Wash", "Soap");
+            if (f4 != null) btnWashHands = f4;
+
+            var f5 = FindStepButton(5, "TurnTapOff", "TapOff", "TurnOff", "Tap");
+            if (f5 != null) btnTurnTapOff = f5;
+
+            var f6 = FindStepButton(6, "PaperTowel", "Towel", "Bin");
+            if (f6 != null) btnPaperTowel = f6;
+
+            var f7 = FindStepButton(7, "WipeSink", "Wipe", "Dry");
+            if (f7 != null) btnWipeSink = f7;
 
             Debug.Log($"[U8_Part2] Bound Steps: 1={btnCloseCubicle?.name}, 2={btnFlush?.name}, 3={btnAnuExitCubicle?.name}, 4={btnWashHands?.name}, 5={btnTurnTapOff?.name}, 6={btnPaperTowel?.name}, 7={btnWipeSink?.name}");
 
@@ -266,7 +298,7 @@ namespace Googolplex.Unit8
                 if (anuNormalSprite != null && anuInsideAvatar.sprite == null) anuInsideAvatar.sprite = anuNormalSprite;
             }
 
-            EnsureWipeVideoOverlay();
+            EnsureWipeVideoContainer();
         }
 
         private Button FindStepButton(int stepNumber, params string[] keywords)
@@ -280,7 +312,7 @@ namespace Googolplex.Unit8
                 if (b.name.IndexOf("Proceed", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                     b.name.IndexOf("Next", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
 
-                var tmp = b.GetComponentInChildren<TextMeshProUGUI>();
+                var tmp = b.GetComponentInChildren<TextMeshProUGUI>(true);
                 if (tmp != null)
                 {
                     string txt = tmp.text.Trim();
@@ -320,7 +352,7 @@ namespace Googolplex.Unit8
                     if (b.name.IndexOf(kw, System.StringComparison.OrdinalIgnoreCase) >= 0)
                         return b;
 
-                    var tmp = b.GetComponentInChildren<TextMeshProUGUI>();
+                    var tmp = b.GetComponentInChildren<TextMeshProUGUI>(true);
                     if (tmp != null && tmp.text.IndexOf(kw, System.StringComparison.OrdinalIgnoreCase) >= 0)
                         return b;
                 }
@@ -401,10 +433,22 @@ namespace Googolplex.Unit8
             }
         }
 
+        public void DeactivateAllStepButtons()
+        {
+            if (btnCloseCubicle != null) btnCloseCubicle.gameObject.SetActive(false);
+            if (btnFlush != null) btnFlush.gameObject.SetActive(false);
+            if (btnAnuExitCubicle != null) btnAnuExitCubicle.gameObject.SetActive(false);
+            if (btnWashHands != null) btnWashHands.gameObject.SetActive(false);
+            if (btnTurnTapOff != null) btnTurnTapOff.gameObject.SetActive(false);
+            if (btnPaperTowel != null) btnPaperTowel.gameObject.SetActive(false);
+            if (btnWipeSink != null) btnWipeSink.gameObject.SetActive(false);
+        }
+
         public void ResetWashroomState()
         {
             CacheEditorPositions();
             currentStepIndex = 1;
+            DeactivateAllStepButtons();
 
             if (cubicleDoorImage != null && cubicleOpenSprite != null) cubicleDoorImage.sprite = cubicleOpenSprite;
             
@@ -423,6 +467,7 @@ namespace Googolplex.Unit8
                 towelInAirImage.rectTransform.anchoredPosition = towelInAirEditorPos;
             }
             if (btnProceedToPart3 != null) btnProceedToPart3.gameObject.SetActive(false);
+            if (wipeVideoContainer != null) wipeVideoContainer.SetActive(false);
             
             // Anu is visible inside the washroom stall when Part 2 starts!
             if (anuInsideAvatar != null)
@@ -513,6 +558,11 @@ namespace Googolplex.Unit8
                     break;
                 case 6:
                     if (promptText != null) promptText.text = "Step 6: Put the used paper towel in the bin.";
+                    if (anuInsideAvatar != null)
+                    {
+                        anuInsideAvatar.gameObject.SetActive(true);
+                        anuInsideAvatar.rectTransform.anchoredPosition = new Vector2(378f, -80f);
+                    }
                     break;
                 case 7:
                     if (promptText != null) promptText.text = "Step 7: Wipe off the sink for the next person.";
@@ -543,7 +593,7 @@ namespace Googolplex.Unit8
             if (btn == null) return fallback;
             if (originalButtonLabels.TryGetValue(btn, out string cached)) return cached;
 
-            var text = btn.GetComponentInChildren<TextMeshProUGUI>();
+            var text = btn.GetComponentInChildren<TextMeshProUGUI>(true);
             string raw = (text != null) ? text.text : fallback;
             raw = raw.Replace("✓", "").Replace("👉", "").Replace("□", "").Trim();
             if (string.IsNullOrEmpty(raw)) raw = fallback;
@@ -556,21 +606,27 @@ namespace Googolplex.Unit8
         {
             if (btn == null) return;
 
+            bool isActiveStep = (currentStepIndex == stepNumber);
+
+            // Activate only the current step button; hide all inactive step buttons
+            btn.gameObject.SetActive(isActiveStep);
+
+            if (!isActiveStep)
+            {
+                btn.transform.localScale = Vector3.one;
+                return;
+            }
+
             var cg = btn.GetComponent<CanvasGroup>();
             if (cg == null) cg = btn.gameObject.AddComponent<CanvasGroup>();
 
-            var text = btn.GetComponentInChildren<TextMeshProUGUI>();
+            var text = btn.GetComponentInChildren<TextMeshProUGUI>(true);
             string label = GetOriginalLabel(btn, defaultLabel);
             if (text != null) text.text = label;
 
-            // Keep all buttons 100% fully visible without dimming / greying out
             cg.alpha = 1.0f;
-
-            bool isActiveStep = (currentStepIndex == stepNumber);
-
-            // Toggle interactability and raycasts so only the current step can be clicked
-            btn.interactable = isActiveStep;
-            cg.blocksRaycasts = isActiveStep;
+            btn.interactable = true;
+            cg.blocksRaycasts = true;
 
             // Ensure Unity's disabled button tint doesn't darken the graphic
             var colors = btn.colors;
@@ -578,11 +634,6 @@ namespace Googolplex.Unit8
             {
                 colors.disabledColor = colors.normalColor;
                 btn.colors = colors;
-            }
-
-            if (!isActiveStep)
-            {
-                btn.transform.localScale = Vector3.one;
             }
         }
 
@@ -631,6 +682,7 @@ namespace Googolplex.Unit8
 
         public void OnCloseCubicleClicked()
         {
+            if (btnCloseCubicle != null) btnCloseCubicle.gameObject.SetActive(false);
             if (U8_AudioManager_Masters_Activity.Instance != null)
             {
                 U8_AudioManager_Masters_Activity.Instance.PlaySFX("SFX_BoltClick");
@@ -655,6 +707,7 @@ namespace Googolplex.Unit8
 
         public void OnFlushClicked()
         {
+            if (btnFlush != null) btnFlush.gameObject.SetActive(false);
             if (U8_AudioManager_Masters_Activity.Instance != null)
             {
                 U8_AudioManager_Masters_Activity.Instance.PlaySFX("SFX_Flush");
@@ -668,12 +721,14 @@ namespace Googolplex.Unit8
 
         public void OnAnuExitCubicleClicked()
         {
+            if (btnAnuExitCubicle != null) btnAnuExitCubicle.gameObject.SetActive(false);
             Debug.Log("[U8_Part2] Step 3 Clicked: Anu stepping out of cubicle to sink.");
             StartCoroutine(AnuExitCubicleRoutine());
         }
 
         private IEnumerator AnuExitCubicleRoutine()
         {
+            if (btnAnuExitCubicle != null) btnAnuExitCubicle.gameObject.SetActive(false);
             if (cubicleDoorImage != null && cubicleOpenSprite != null)
             {
                 cubicleDoorImage.sprite = cubicleOpenSprite;
@@ -765,12 +820,14 @@ namespace Googolplex.Unit8
         public void OnWashHandsClicked()
         {
             if (currentStepIndex != 4) return;
+            if (btnWashHands != null) btnWashHands.gameObject.SetActive(false);
             Debug.Log("[U8_Part2] Step 4 Clicked: Turning tap on and opening Handwash Screen smoothly.");
             StartCoroutine(WashHandsTransitionRoutine());
         }
 
         private IEnumerator WashHandsTransitionRoutine()
         {
+            if (btnWashHands != null) btnWashHands.gameObject.SetActive(false);
             // 1. Turn the tap ON: water stream starts and sound plays
             if (tapWaterStream != null) tapWaterStream.gameObject.SetActive(true);
             if (sinkImage != null && sinkSplashedSprite != null) sinkImage.sprite = sinkSplashedSprite;
@@ -795,6 +852,7 @@ namespace Googolplex.Unit8
 
         public void OnTurnTapOffClicked()
         {
+            if (btnTurnTapOff != null) btnTurnTapOff.gameObject.SetActive(false);
             if (U8_AudioManager_Masters_Activity.Instance != null)
             {
                 U8_AudioManager_Masters_Activity.Instance.StopAmbience();
@@ -803,6 +861,13 @@ namespace Googolplex.Unit8
             if (tapWaterStream != null) tapWaterStream.gameObject.SetActive(false);
             if (sinkImage != null && sinkCleanSprite != null) sinkImage.sprite = sinkCleanSprite;
             if (U8_GameManager_Masters_Activity.Instance != null) U8_GameManager_Masters_Activity.Instance.isTapTurnedOff = true;
+
+            // Step 5 completed: position Anu at X = 378, Y = -80 before Step 6 begins
+            if (anuInsideAvatar != null)
+            {
+                anuInsideAvatar.gameObject.SetActive(true);
+                anuInsideAvatar.rectTransform.anchoredPosition = new Vector2(378f, -80f);
+            }
 
             currentStepIndex = 6;
             UpdateStepVisuals();
@@ -813,13 +878,21 @@ namespace Googolplex.Unit8
             }
         }
 
+        private bool isPaperTowelInProgress = false;
+
         public void OnPaperTowelClicked()
         {
+            if (isPaperTowelInProgress) return;
+            if (currentStepIndex != 6) return;
+            if (btnPaperTowel != null) btnPaperTowel.gameObject.SetActive(false);
             StartCoroutine(PaperTowelRoutine());
         }
 
         private IEnumerator PaperTowelRoutine()
         {
+            isPaperTowelInProgress = true;
+            if (btnPaperTowel != null) btnPaperTowel.gameObject.SetActive(false);
+
             if (U8_AudioManager_Masters_Activity.Instance != null)
             {
                 U8_AudioManager_Masters_Activity.Instance.PlaySFX("SFX_TowelPull");
@@ -827,6 +900,13 @@ namespace Googolplex.Unit8
 
             if (towelInAirImage != null)
             {
+                // Ensure Anu is positioned at X = 378, Y = -80
+                if (anuInsideAvatar != null)
+                {
+                    anuInsideAvatar.gameObject.SetActive(true);
+                    anuInsideAvatar.rectTransform.anchoredPosition = new Vector2(378f, -80f);
+                }
+
                 // 1. Bring to top layer so it renders above all panels & backgrounds
                 towelInAirImage.transform.SetAsLastSibling();
 
@@ -835,33 +915,27 @@ namespace Googolplex.Unit8
                 towelInAirImage.transform.localScale = Vector3.one;
                 towelInAirImage.gameObject.SetActive(true);
 
-                // 3. Determine start position: throw directly from Anu's hands
-                Vector2 startPos = towelInAirEditorPos;
+                // 3. Determine start position: throw directly from Anu's Step 6 position (X = 378, Y = -80)
+                Vector2 startPos;
                 if (anuInsideAvatar != null && towelInAirImage.transform.parent != null)
                 {
                     Vector3 worldAnuPos = anuInsideAvatar.transform.position;
                     Vector3 localAnuPos = towelInAirImage.transform.parent.InverseTransformPoint(worldAnuPos);
-                    // Start from Anu's right hand / chest level
-                    startPos = new Vector2(localAnuPos.x + 45f, localAnuPos.y + 15f);
+                    // Start from Anu's right hand / chest level at her Step 6 position
+                    startPos = new Vector2(localAnuPos.x + 42f, localAnuPos.y + 30f);
                 }
                 else
                 {
-                    Transform towelHolderT = transform.Find("TowelHolder/TowelHolderImage") ?? transform.Find("TowelHolder");
-                    if (towelHolderT != null && towelInAirImage.transform.parent != null)
-                    {
-                        Vector3 worldHolderPos = towelHolderT.position;
-                        Vector3 localHolderPos = towelInAirImage.transform.parent.InverseTransformPoint(worldHolderPos);
-                        startPos = new Vector2(localHolderPos.x - 20f, localHolderPos.y - 30f);
-                    }
+                    startPos = new Vector2(420f, -50f);
                 }
 
-                // 4. Target position: top opening of the trash bin
+                // 4. Target position: top opening of the trash bin directly beside/beneath Anu
                 Vector2 targetBinPos;
                 if (binImage != null && towelInAirImage.transform.parent != null)
                 {
                     Vector3 worldBinPos = binImage.transform.position;
                     Vector3 localBinPos = towelInAirImage.transform.parent.InverseTransformPoint(worldBinPos);
-                    targetBinPos = new Vector2(localBinPos.x, localBinPos.y + 50f);
+                    targetBinPos = new Vector2(localBinPos.x, localBinPos.y + 60f);
                 }
                 else
                 {
@@ -870,29 +944,29 @@ namespace Googolplex.Unit8
                     {
                         Vector3 worldBinPos = binT.position;
                         Vector3 localBinPos = towelInAirImage.transform.parent.InverseTransformPoint(worldBinPos);
-                        targetBinPos = new Vector2(localBinPos.x, localBinPos.y + 50f);
+                        targetBinPos = new Vector2(localBinPos.x, localBinPos.y + 60f);
                     }
                     else
                     {
-                        targetBinPos = new Vector2(startPos.x + 260f, startPos.y - 120f);
+                        targetBinPos = new Vector2(560f, -150f);
                     }
                 }
 
                 towelInAirImage.rectTransform.anchoredPosition = startPos;
 
-                // 5. Smooth parabolic toss animation from Anu's hands into the bin (~0.75s)
-                for (float t = 0; t < 1f; t += Time.deltaTime * 1.35f)
+                // 5. Short, smooth parabolic toss into the nearby dustbin (~0.65s)
+                for (float t = 0; t < 1f; t += Time.deltaTime * 1.5f)
                 {
                     Vector2 currentPos = Vector2.Lerp(startPos, targetBinPos, t);
-                    currentPos.y += Mathf.Sin(t * Mathf.PI) * 90f;
+                    currentPos.y += Mathf.Sin(t * Mathf.PI) * 45f;
                     towelInAirImage.rectTransform.anchoredPosition = currentPos;
-                    towelInAirImage.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Lerp(0f, -45f, t));
+                    towelInAirImage.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Lerp(0f, -40f, t));
                     yield return null;
                 }
 
                 towelInAirImage.gameObject.SetActive(false);
                 towelInAirImage.transform.localRotation = Quaternion.identity;
-                towelInAirImage.rectTransform.anchoredPosition = towelInAirEditorPos;
+                towelInAirImage.rectTransform.anchoredPosition = startPos;
             }
 
             if (U8_AudioManager_Masters_Activity.Instance != null)
@@ -909,9 +983,16 @@ namespace Googolplex.Unit8
             {
                 U8_AudioManager_Masters_Activity.Instance.PlayVO("VO_U8_11"); // "Wipe the sink."
             }
+
+            isPaperTowelInProgress = false;
         }
 
         public void EnsureWipeVideoOverlay()
+        {
+            EnsureWipeVideoContainer();
+        }
+
+        public void EnsureWipeVideoContainer()
         {
             if (wipingSinkVideoClip == null)
             {
@@ -924,111 +1005,37 @@ namespace Googolplex.Unit8
 #endif
             }
 
-            if (wipeVideoOverlay == null)
+            if (wipeVideoContainer == null)
             {
-                Transform existing = transform.Find("WipeVideoOverlay");
+                Transform existing = transform.Find("WipeVideoContainer") ?? transform.Find("WipeVideoOverlay");
                 if (existing != null)
                 {
-                    wipeVideoOverlay = existing.gameObject;
-                    wipeVideoRawImage = existing.GetComponentInChildren<RawImage>(true);
-                    wipeVideoPlayer = existing.GetComponentInChildren<VideoPlayer>(true);
-                    wipeVideoAspectFitter = existing.GetComponentInChildren<AspectRatioFitter>(true);
+                    wipeVideoContainer = existing.gameObject;
                 }
             }
 
-            if (wipeVideoOverlay == null)
+            if (wipeVideoContainer != null)
             {
-                GameObject overlayGo = new GameObject("WipeVideoOverlay", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(CanvasGroup));
-                overlayGo.transform.SetParent(transform, false);
-                overlayGo.transform.SetAsLastSibling();
-
-                RectTransform rt = overlayGo.GetComponent<RectTransform>();
-                rt.anchorMin = Vector2.zero;
-                rt.anchorMax = Vector2.one;
-                rt.sizeDelta = Vector2.zero;
-                rt.anchoredPosition = Vector2.zero;
-                rt.localScale = Vector3.one;
-
-                Image bgImg = overlayGo.GetComponent<Image>();
-                bgImg.color = new Color(0.04f, 0.06f, 0.1f, 1f);
-                bgImg.raycastTarget = true;
-
-                CanvasGroup cg = overlayGo.GetComponent<CanvasGroup>();
-                cg.alpha = 1f;
-                cg.blocksRaycasts = true;
-                cg.interactable = false;
-
-                GameObject videoContainer = new GameObject("WipeVideoContainer", typeof(RectTransform));
-                videoContainer.transform.SetParent(overlayGo.transform, false);
-                RectTransform containerRt = videoContainer.GetComponent<RectTransform>();
-                containerRt.anchorMin = Vector2.zero;
-                containerRt.anchorMax = Vector2.one;
-                containerRt.sizeDelta = Vector2.zero;
-                containerRt.anchoredPosition = Vector2.zero;
-                containerRt.localScale = Vector3.one;
-
-                GameObject rawImgGo = new GameObject("WipeVideoDisplay", typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage), typeof(AspectRatioFitter), typeof(VideoPlayer));
-                rawImgGo.transform.SetParent(videoContainer.transform, false);
-
-                RectTransform rawRt = rawImgGo.GetComponent<RectTransform>();
-                rawRt.anchorMin = new Vector2(0.5f, 0.5f);
-                rawRt.anchorMax = new Vector2(0.5f, 0.5f);
-                rawRt.pivot = new Vector2(0.5f, 0.5f);
-                rawRt.sizeDelta = new Vector2(1080f, 720f);
-                rawRt.anchoredPosition = Vector2.zero;
-                rawRt.localScale = Vector3.one;
-
-                wipeVideoAspectFitter = rawImgGo.GetComponent<AspectRatioFitter>();
-                wipeVideoAspectFitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
-                wipeVideoAspectFitter.aspectRatio = 16f / 9f;
-
-                wipeVideoRawImage = rawImgGo.GetComponent<RawImage>();
-                wipeVideoRawImage.color = Color.white;
-                wipeVideoRawImage.raycastTarget = false;
-
-                wipeVideoPlayer = rawImgGo.GetComponent<VideoPlayer>();
-                wipeVideoPlayer.playOnAwake = false;
-                wipeVideoPlayer.renderMode = VideoRenderMode.RenderTexture;
-                wipeVideoPlayer.audioOutputMode = VideoAudioOutputMode.None;
-                wipeVideoPlayer.isLooping = false;
-
-                wipeVideoOverlay = overlayGo;
-            }
-
-            if (wipeVideoPlayer == null && wipeVideoOverlay != null)
-            {
-                wipeVideoPlayer = wipeVideoOverlay.GetComponentInChildren<VideoPlayer>(true);
-                if (wipeVideoPlayer == null && wipeVideoRawImage != null)
+                if (wipeVideoRawImage == null)
                 {
-                    wipeVideoPlayer = wipeVideoRawImage.gameObject.AddComponent<VideoPlayer>();
+                    wipeVideoRawImage = wipeVideoContainer.GetComponentInChildren<RawImage>(true);
                 }
-            }
-
-            if (wipeVideoAspectFitter == null && wipeVideoRawImage != null)
-            {
-                wipeVideoAspectFitter = wipeVideoRawImage.GetComponent<AspectRatioFitter>();
+                if (wipeVideoPlayer == null)
+                {
+                    wipeVideoPlayer = wipeVideoContainer.GetComponentInChildren<VideoPlayer>(true);
+                }
                 if (wipeVideoAspectFitter == null)
                 {
-                    wipeVideoAspectFitter = wipeVideoRawImage.gameObject.AddComponent<AspectRatioFitter>();
+                    wipeVideoAspectFitter = wipeVideoContainer.GetComponentInChildren<AspectRatioFitter>(true);
                 }
-            }
 
-            if (wipeVideoAspectFitter != null)
-            {
-                wipeVideoAspectFitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
-                if (wipingSinkVideoClip != null && wipingSinkVideoClip.width > 0 && wipingSinkVideoClip.height > 0)
+                if (wipeVideoAspectFitter != null && wipingSinkVideoClip != null && wipingSinkVideoClip.width > 0 && wipingSinkVideoClip.height > 0)
                 {
+                    wipeVideoAspectFitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
                     wipeVideoAspectFitter.aspectRatio = (float)wipingSinkVideoClip.width / (float)wipingSinkVideoClip.height;
                 }
-                else
-                {
-                    wipeVideoAspectFitter.aspectRatio = 16f / 9f;
-                }
-            }
 
-            if (wipeVideoOverlay != null)
-            {
-                wipeVideoOverlay.SetActive(false);
+                wipeVideoContainer.SetActive(false);
             }
         }
 
@@ -1036,7 +1043,7 @@ namespace Googolplex.Unit8
         {
             if (wipeVideoPlayer == null || wipeVideoRawImage == null)
             {
-                EnsureWipeVideoOverlay();
+                EnsureWipeVideoContainer();
             }
 
             if (wipingSinkVideoClip == null)
@@ -1089,6 +1096,7 @@ namespace Googolplex.Unit8
 
         private void HideOldPart2ControlsForVideo()
         {
+            DeactivateAllStepButtons();
             if (anuInsideAvatar != null)
             {
                 anuInsideAvatar.gameObject.SetActive(false);
@@ -1119,7 +1127,7 @@ namespace Googolplex.Unit8
 
             if (btnWipeSink != null)
             {
-                btnWipeSink.interactable = false;
+                btnWipeSink.gameObject.SetActive(false);
             }
 
             StartCoroutine(WipeSinkVideoFlowRoutine());
@@ -1129,7 +1137,12 @@ namespace Googolplex.Unit8
         {
             Debug.Log("[U8 Step7] Blink transition started");
 
-            EnsureWipeVideoOverlay();
+            if (btnWipeSink != null)
+            {
+                btnWipeSink.gameObject.SetActive(false);
+            }
+
+            EnsureWipeVideoContainer();
 
             bool peakReached = false;
 
@@ -1140,10 +1153,10 @@ namespace Googolplex.Unit8
                     {
                         peakReached = true;
                         HideOldPart2ControlsForVideo();
-                        if (wipeVideoOverlay != null)
+                        if (wipeVideoContainer != null)
                         {
-                            wipeVideoOverlay.transform.SetAsLastSibling();
-                            wipeVideoOverlay.SetActive(true);
+                            wipeVideoContainer.transform.SetAsLastSibling();
+                            wipeVideoContainer.SetActive(true);
                         }
                         StartWipingSinkVideo();
                     },
@@ -1154,10 +1167,10 @@ namespace Googolplex.Unit8
             else
             {
                 HideOldPart2ControlsForVideo();
-                if (wipeVideoOverlay != null)
+                if (wipeVideoContainer != null)
                 {
-                    wipeVideoOverlay.transform.SetAsLastSibling();
-                    wipeVideoOverlay.SetActive(true);
+                    wipeVideoContainer.transform.SetAsLastSibling();
+                    wipeVideoContainer.SetActive(true);
                 }
                 StartWipingSinkVideo();
                 peakReached = true;
@@ -1210,9 +1223,9 @@ namespace Googolplex.Unit8
 
             Debug.Log("[U8 Step7] Wiping sink video completed");
 
-            if (wipeVideoOverlay != null)
+            if (wipeVideoContainer != null)
             {
-                wipeVideoOverlay.SetActive(false);
+                wipeVideoContainer.SetActive(false);
             }
 
             RestorePart2ControlsAfterVideo();

@@ -52,7 +52,7 @@ namespace Googolplex.Unit8
         [SerializeField] private AudioClip vo_U8_03; // "Knock and wait"
         [SerializeField] private AudioClip vo_U8_04; // "Now what next"
         [SerializeField] private AudioClip vo_U8_05; // "Do not forget to flush"
-        [SerializeField] private AudioClip vo_U8_06; // "Now wash your hands Keep tapping"
+        [SerializeField] private AudioClip vo_U8_06; // "Press and hold Wash Hands to keep washing your hands"
         [SerializeField] private AudioClip vo_U8_07; // "Keep going"
         [SerializeField] private AudioClip vo_U8_08; // "All clean One star"
         [SerializeField] private AudioClip vo_U8_09; // "Turn the tap off"
@@ -523,7 +523,7 @@ namespace Googolplex.Unit8
             if (lower.Contains("knock and wait")) return "VO_U8_03";
             if (lower.Contains("now what next")) return "VO_U8_04";
             if (lower.Contains("do not forget to flush") || lower.Contains("forget to flush")) return "VO_U8_05";
-            if (lower.Contains("now wash your hands") || lower.Contains("keep tapping")) return "VO_U8_06";
+            if (lower.Contains("now wash your hands") || lower.Contains("keep tapping") || lower.Contains("press and hold") || lower.Contains("keep washing your hands")) return "VO_U8_06";
             if (lower.Contains("keep going")) return "VO_U8_07";
             if (lower.Contains("all clean one star") || lower.Contains("all clean")) return "VO_U8_08";
             if (lower.Contains("turn the tap off")) return "VO_U8_09";
@@ -646,7 +646,7 @@ namespace Googolplex.Unit8
             if (clean == "VOU805" || clean.Contains("FORGETTOFLUSH"))
                 if (vo_U8_05 != null) return vo_U8_05;
 
-            if (clean == "VOU806" || clean.Contains("NOWWASHYOURHANDS") || clean.Contains("KEEPTAPPING"))
+            if (clean == "VOU806" || clean.Contains("NOWWASHYOURHANDS") || clean.Contains("KEEPTAPPING") || clean.Contains("PRESSANDHOLD"))
                 if (vo_U8_06 != null) return vo_U8_06;
 
             if (clean == "VOU807" || clean.Contains("KEEPGOING"))
@@ -735,6 +735,16 @@ namespace Googolplex.Unit8
             if (voSource != null) voSource.Stop();
         }
 
+        public void PauseVO()
+        {
+            if (voSource != null && voSource.isPlaying) voSource.Pause();
+        }
+
+        public void ResumeVO()
+        {
+            if (voSource != null && !voSource.isPlaying && voSource.clip != null) voSource.UnPause();
+        }
+
         public void PlayBGM(string bgmId, bool loop = true)
         {
             if (string.IsNullOrEmpty(bgmId)) return;
@@ -764,6 +774,16 @@ namespace Googolplex.Unit8
         public void StopBGM()
         {
             if (bgmSource != null) bgmSource.Stop();
+        }
+
+        public void PauseBGM()
+        {
+            if (bgmSource != null && bgmSource.isPlaying) bgmSource.Pause();
+        }
+
+        public void ResumeBGM()
+        {
+            if (bgmSource != null && !bgmSource.isPlaying && bgmSource.clip != null) bgmSource.UnPause();
         }
 
         public void PlayAmbience(string ambId, bool loop = true)

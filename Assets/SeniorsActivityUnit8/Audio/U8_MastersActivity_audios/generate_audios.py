@@ -15,7 +15,7 @@ audio_items = [
     {"file": "Knock and wait.mp3", "text": "Knock, and wait.", "voice": VOICE_TEACHER},
     {"file": "Now what next.mp3", "text": "Now, what next?", "voice": VOICE_TEACHER},
     {"file": "Do not forget to flush.mp3", "text": "Do not forget to flush.", "voice": VOICE_TEACHER},
-    {"file": "Now wash your hands Keep tapping.mp3", "text": "Now wash your hands. Keep tapping!", "voice": VOICE_TEACHER},
+    {"file": "Now wash your hands Keep tapping.mp3", "text": "Press and hold Wash Hands to keep washing your hands.", "voice": VOICE_TEACHER},
     {"file": "Keep going.mp3", "text": "Keep going!", "voice": VOICE_TEACHER},
     {"file": "All clean One star.mp3", "text": "All clean! One star.", "voice": VOICE_TEACHER},
     {"file": "Turn the tap off.mp3", "text": "Turn the tap off.", "voice": VOICE_TEACHER},
